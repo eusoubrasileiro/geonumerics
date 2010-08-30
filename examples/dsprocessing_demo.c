@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "pdsinais.cpp"
+#include "..\source\c\dsprocessing.c"
 
 
 void
