@@ -4,26 +4,17 @@ Biblioteca de processamento digital de sinais
 
 */
 
-#ifndef _PDSINAIS_H_
-#define _PDSINAIS_H_
-
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-
-#include "..\..\my_includes\v.h" /* minhas bibliotecas huhuhu */
-
-/* is not being called to be an dll dont put anything as attribute
-before the functions */
-#ifndef DLLIMPORT
-#define DLLIMPORT
-#endif
+#include "dsprocessing.h"
+#include "v.c" /* should change someway */
 
 /*
-a alegria da convolução 
+a alegria da convolução
 http://www.jhu.edu/~signals/convolve/index.html
 
-convolução = calculo da resposta de um sistema linear 
+convolução = calculo da resposta de um sistema linear
 invariante no tempo à partir de um sinal de entrada
 
 ex:
@@ -35,18 +26,18 @@ entrada -> saida
 [1] -> [1, 2, 1, 3] resposta impulsiva
 [0, 1] -> [0, 1, 2, 1, 3] invariância no tempo
 [2] -> 2*[1, 2, 1, 3] linearidade
-           
+
 [2,3] -> 2*[1, 2, 1, 3]+3*[0, 1, 2, 1, 3] = [2, 4, 2, 6]
                                           + [0, 3, 6, 3, 9]
                                           = [2, 7, 8, 9, 9]
 o mesmo que (2+x)*(1+2x+x^2+3x^3) = 2+7x+8x^2+9x^3+9x^4
-       
-sinal de entrada no sistema  x[t]                                         
+
+sinal de entrada no sistema  x[t]
 resposta impulsiva do sistema h[t]
 resposta do sistema para o sinal de entrada y[t] - resultado da convolucao
 
 y[t] = soma k(0->Nx) x[k]*h[t-k]
-           
+
 */
 
 
@@ -59,7 +50,7 @@ X[t](*)H[t] onde (*) eh o operador da convolucao
 */
 
 double *
-pdsConv(double *x, unsigned int Nx, double *h, unsigned int Nh){
+dspConv(double *x, unsigned int Nx, double *h, unsigned int Nh){
     unsigned int k; /* counters */
     double *h_k; /* ajudinha p/ a convolucao , guarda h[t-k]*/
     double *y; /* saida */
@@ -112,11 +103,12 @@ Conv(a,b(-t)) != Conv(b, a(-t))
 
 */
 
-DLLIMPORT double *
-pdsCorr(double *a, unsigned int sa, double *b, unsigned int sb){
+double *
+dspCorr(double *a, unsigned int sa, double *b, unsigned int sb){
 
-    //vPrintf(stdout, b, sb); /* pra checar se o time invert ta certo e ta */
+    /* vPrintf(stdout, b, sb); */ /* pra checar se o time invert ta certo e ta */
     /* invert sempre a segunda */
+	/* not sure if this time invert is right */
     vTimeInvert(b, (int) sb);
     //vPrintf(stdout, b, sb);
 
@@ -126,7 +118,7 @@ pdsCorr(double *a, unsigned int sa, double *b, unsigned int sb){
     doesnt make sense because u would be dealing with a mess in the
     frequency domain, you first have to put than in the sample sample
     rate and after padded the smaller so they have the same size */
-    return pdsConv(a, sa, b, sb);
+    return dspConv(a, sa, b, sb);
 
 }
 
@@ -172,8 +164,8 @@ na correlacao normal seria
 
 
 */
-DLLIMPORT double *
-pdsxCorr(double *x, double *y, int N, int m){
+double *
+dspxCorr(double *x, double *y, int N, int m){
     int i;
 	double *xcorr;
 
@@ -236,8 +228,8 @@ Tested with numpy FFT. Equal ABS values for rand noises. and PHASE
 Totally validated!!
 */
 
-DLLIMPORT void
-pdsDft(unsigned int Namostras, double *Amostras, double *an, double *bn){
+void
+dspDft(unsigned int Namostras, double *Amostras, double *an, double *bn){
     unsigned int i, n; /* indice p/ somatoria e para os harmonicos */
 
 
@@ -257,7 +249,7 @@ inversa..
 */
 
 void
-pdsIDft(unsigned int Namostras, double *Amostras, double *an, double *bn){
+dspIDft(unsigned int Namostras, double *Amostras, double *an, double *bn){
     unsigned int i, n; /* indice p/ somatoria e para os harmonicos */
 
     for(n=0; n < Namostras; n++){ /* 0 -> N-1 .. N frequencias */
@@ -279,7 +271,7 @@ tx de amostragem = espacamento em segundos entre as amostras
 */
 
 void
-pdsEspectro(FILE *saida, double *a, double *b, unsigned int npontos, double txamos){
+dspEspectro(FILE *saida, double *a, double *b, unsigned int npontos, double txamos){
     unsigned int k;
     /* imprime */
     /* k -> cos(2pi*i*k/N) -> k = 0 frequencia k/(N*txamostragem) = 0 */
@@ -289,6 +281,67 @@ pdsEspectro(FILE *saida, double *a, double *b, unsigned int npontos, double txam
     for(k=0; k<npontos; k++) /* precorre todos os coeficientes */
      fprintf(saida, "%.2f %.2f \n", k/(npontos*txamos), sqrt(a[k]*a[k]+b[k]*b[k]));
 }
+
+
+/*
+
+Simple Linear regression
+For a set of pairs (x_i, y_i)
+where x_i is given by the index
+find the coeficients [a, b]
+that the gives the minimum error
+for
+sum (yi - a - xi*b )**2 = E)
+N number of pairs
+return the coeficients a and b
+
+b = sum xy - (sum  x * 1/N sum y )
+b / = sum xx - [(sum x)^2 * 1/N ]
+&
+a = (1/N sum y)   - b * (1/N sum x)
+
+*/
+
+double* dspLinear(double* y, unsigned int N)
+{
+	double *a_b = (double*) malloc(sizeof(double)*2);
+	unsigned int i;
+	double xy, xx, x_, y_;
+	a_b[0]=a_b[1]=xy=x_=y_=xx=0;
+
+	for(i=0; i<N; i++){
+		xy += i*y[i]; xx += i*i;
+		x_ += i; y_ +=  y[i];
+	}
+	/*b = sum xy - (sum  x * 1/N sum y )
+	b / = sum xx - [(sum x)^2 * 1/N ]*/
+	a_b[1] = (xy - (x_*y_/N))/( xx - (x_*x_/N));
+	a_b[0] = (y_/N) - (a_b[1]*x_/N);
+
+	return a_b;
+}
+
+
+/*
+remove the linear trend
+from the data use the function above to
+get a and b
+make X = X - (a + b*xi)
+where xi is the array index
+*/
+
+void dspDetrendLinear(double* x, unsigned int N)
+{
+	unsigned int i;
+	double* a_b = dspLinear(x, N);
+
+	for(i =0; i<N; i++)
+	{
+		x[i] -= a_b[0] + a_b[1]*i;
+	}
+}
+
+
 
 /*
 IIR - infinite impulse response
@@ -309,15 +362,13 @@ O tamanho do filtro no tempo eh ( N dt )
 A amostragem do filtro no tempo é feito de t:
 -(N dt)/2 ate (N dt)/2
 para garantir a simetria do filtro nao modificando seu espectro
-o Box(0) no limite eh igual à 1?
+o Box(0) no limite eh igual à
 
 */
 
 double
-*pdsIIRBox(double Fc, unsigned int Na, double dt){
+*dspIIRBox(double Fc, unsigned int Na, double dt){
 
     return 0;
 }
 
-
-#endif /* _PDSINAIS_H_ */

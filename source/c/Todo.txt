@@ -1,0 +1,8 @@
+Add to the c code :
+
+Trapezoidal Low pass
+FFt convolution
+Hanning window
+
+Find a FFTW or FFT c code already working... or no
+put here inside or find a dll?
