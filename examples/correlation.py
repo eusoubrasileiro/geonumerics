@@ -5,7 +5,6 @@
 import numpy, sys, os
 from pylab import arange
 import pylab
-import pyplot
 
 x = [0, 0, 1, 2, 3, 3, 3, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0];
 x_2 = [0, 0] + x; # x time shift 2 samples

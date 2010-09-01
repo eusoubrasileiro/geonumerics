@@ -348,7 +348,7 @@ IIR - infinite impulse response
 
 Monta um filtro "caixa" no tempo, dados
 1) A frequencia de corte Fc
-2) O numero de amostras do filtro
+2) Ordem do filtro: On*2+1 = N:numero de amostras do filtro
 3) A taxa de amostragem do filtro (dt) (deve ser igual ao do sinal à ser filtrado)
 pq senao vc tah mulptiplicando outra coisa na frequencia...
 
@@ -367,7 +367,7 @@ o Box(0) no limite eh igual à
 */
 
 double
-*dspIIRBox(double Fc, unsigned int Na, double dt){
+*dspIIRBox(double Fc, unsigned int On, double dt){
 
     return 0;
 }
