@@ -159,8 +159,19 @@ vTimeInvert(double *v, int n){
         return;
     }
 
-    for(i=0; i<mid; i++)
+	/* 
+	example 5/2 = 2 
+	swap(v[0],v[4])
+	swap(v[1],v[3])
+	example 6/2 = 3
+	swap(v[0],v[5])
+	swap(v[1],v[4])
+	swap{v[2],v[3])
+	*/
+	for(i=0; i<mid; i++){ /* thousand of problems may arise it
+						  it snot for this '{''}' guys */
         SWAP(v[i], v[n-1-i]);
+	}
 
 }
 #endif /* _V_H_ */
