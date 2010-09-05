@@ -4,11 +4,15 @@ Biblioteca de processamento digital de sinais
 
 */
 
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795
+#endif
+
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "dsprocessing.h"
 #include "v.c" /* should change someway */
+#include "dspFFT.c"
 
 /*
 a alegria da convolução
@@ -103,7 +107,7 @@ Conv(a,b(-t)) != Conv(b, a(-t))
 
 */
 
-double *
+double*
 dspCorr(double *a, unsigned int sa, double *b, unsigned int sb){
 
     /* vPrintf(stdout, b, sb); */ /* pra checar se o time invert ta certo e ta */
@@ -117,7 +121,8 @@ dspCorr(double *a, unsigned int sa, double *b, unsigned int sb){
     /* looks like that make a convolution of two vector of diferent size
     doesnt make sense because u would be dealing with a mess in the
     frequency domain, you first have to put than in the sample sample
-    rate and after padded the smaller so they have the same size */
+    rate and after padded the smaller so they have the same size 
+	Note: except for recursive filters? */
     return dspConv(a, sa, b, sb);
 
 }
@@ -187,9 +192,7 @@ dft - direct forier transform
 
 */
 
-#ifndef M_PI
-#define M_PI 3.1415926535897932384626433832795
-#endif
+
 
 /*
 
@@ -210,14 +213,15 @@ Considera-se a base de funções exponenciais, com N termos tal que:
 exp[ (2pi/N)*k*t ]  k = 0, N-1 (são os vetores da base ortogonal)
 
 2pi/N -> garante exponenciais com frequencias multiplas da frequencia
-fundamental do sinal que eh assumida como 1/N. (Isso é uma análise harmônica
+fundamental do sinal que eh assumida como 1/N. (Isso tambem é uma análise harmônica
 complexa)
 
 Assim a projeção é feita soh com a parte positiva
-das exponencias pois espera-se, que como para toda função real
-o espectro é par e a fase ímpar não precisamos fazer a projeção
-de -inf -> +inf ou de -N+1 -> N-1 basta a parte positiva (ou negativa)
-
+das exponencias pois a parte negativa é simétrica.
+Para o caso mais especifico do sinal de entrada real ainda:
+o espectro é simetrico isso é
+F(0->N/2) = F(N->N/2) ou = F(-N/2->N)
+tambem
 os coeficentes ncomplexs positivos são o
 conjugado dos negativos, Z+n = (Z-n)*
 o mesmo que F*(f) = F(-f)
@@ -226,40 +230,55 @@ o mesmo que F*(f) = F(-f)
 
 Tested with numpy FFT. Equal ABS values for rand noises. and PHASE
 Totally validated!!
+
+Ndiscrete fourier transform not normalized by N
+
+also not very efficient due not taking the oportunity of having a simetrical spectrum
+
+
+
+
 */
 
-void
-dspDft(unsigned int Namostras, double *Amostras, double *an, double *bn){
+#if BUILDING_DLL
+# define EXPORTING __declspec (dllexport) __stdcall
+#else /* Not BUILDING_DLL */
+# define EXPORTING 
+#endif /* Not BUILDING_DLL */
+
+/*
+good sense
+*/
+
+EXPORTING int
+dspDft(double *samples, unsigned int ns, double *an, double *bn){
     unsigned int i, n; /* indice p/ somatoria e para os harmonicos */
 
-
-    for(n=0; n < Namostras; n++){ /* 0 -> N-1 .. N frequencias */
+    for(n=0; n < ns; n++){ /* 0 -> N-1 .. N frequencias */
         an[n]=bn[n]=0; /*to be used as accumulators * /
     /* produto interno de f(t) com cos(wn*i) e sin(wn*i) */
-        for(i=0; i<Namostras; i++){ /* projeta nos cossenos e senos com t ou i indo de 0->N-1 */
-            an[n] += Amostras[i]*cos( (double) n*2*M_PI*i/(Namostras));
-            bn[n] += -Amostras[i]*sin( (double) n*2*M_PI*i/(Namostras));
+        for(i=0; i<ns; i++){ /* projeta nos cossenos e senos com t ou i indo de 0->N-1 */
+            an[n] += samples[i]*cos( (double) n*2*M_PI*i/(ns));
+            bn[n] += -1*samples[i]*sin( (double) n*2*M_PI*i/(ns));
         }
     }/* faz a projecao sobre o vetor exp[ (2pi/N)*k*t ] */
+	return 0;
 }
 
 /*
-inversa..
-
+Remember when calling to pass the adress of the pointer that will be alloced
+double* an, bn;
+dspDft_(samples, ns, &an, &bn);
 */
-
-void
-dspIDft(unsigned int Namostras, double *Amostras, double *an, double *bn){
-    unsigned int i, n; /* indice p/ somatoria e para os harmonicos */
-
-    for(n=0; n < Namostras; n++){ /* 0 -> N-1 .. N frequencias */
-        an[n]=bn[n]=0; /*to be used as accumulators * /
-    /* produto interno de f(t) com cos(wn*i) e sin(wn*i) */
-        for(i=0; i< Namostras; i++){ /* projeta nos cossenos e senos com t ou i indo de 0->N-1 */
-            an[n] += Amostras[i]*cos( (double) n*2*M_PI*i/(Namostras));
-            bn[n] += Amostras[i]*sin( (double) n*2*M_PI*i/(Namostras));
-        }
-    }/* faz a projecao sobre o vetor exp[ (2pi/N)*k*t ] */
+int
+dspDft_(double *samples, unsigned int ns, double **an, double **bn){
+   	double *as, *bs;    
+    /* allocing to avoid problems */
+	*an = (double*) malloc(sizeof(double)*ns);
+	*bn = (double*) malloc(sizeof(double)*ns);
+	as = an[0];
+	bs = bn[0];   
+	return dspDft(samples, ns, as, bs);
 }
 
 /*

@@ -8,7 +8,7 @@
 
 /* temp variable to store the size of the input pyList, needed when creating a list back */
 %{
-int size_pyList;
+unsigned int size_pyList;
 %}
 /* 
 as its a mult type map for each block of variables it will only accept one input
@@ -129,6 +129,72 @@ its gonna be a list
 */
 %feature("autodoc", "1");
 extern void dspDetrendLinear(double *x, unsigned int N);
+
+
+
+/***********************************************************************/
+
+/* 
+as its a mult type map for each block of variables it will only accept one input
+In typemap for converting pyList inputs into array and also get 
+the size of the pyList and call correctly the function  
+$1 is the first argument of the function that will be called 
+$2 is the second and so on..
+$input is the input object expected here a List
+*/
+%typemap(in) (double *x, unsigned int ns, double *a, double *b)
+{
+	 /* Check if is a list */
+	  if (PyList_Check($input)) {
+		/* convert the list to an array and also get's its size */
+		$1 = PyList_to_vector($input, &size_pyList);
+		$2 = size_pyList;  
+		$3 = (double*) malloc(sizeof(double)*size_pyList);
+		$4 = (double*) malloc(sizeof(double)*size_pyList);
+	  }
+	  else {
+	    PyErr_SetString(PyExc_TypeError,"not a list");
+	    return NULL;
+	  }		
+}
+
+/* 
+Out typemap for 2 double array  
+result is the  result from the function called, or "result" contains that
+size_pyList contains the initial list size,
+*/
+%typemap(argout) (double *x, unsigned int ns, double *a, double *b)
+{
+	/* check return status */
+	if(result == -1)
+		return NULL;
+	else 
+	{
+		$result = Arrays2_to_PyList($3, $4, size_pyList);
+		/* Check if there was any error in the conversion */
+		if(!$result)
+	    {
+	        return NULL;
+	    }
+	}
+}
+
+%feature("autodoc", "1");
+extern int dspDft(double *x, unsigned int ns, double *a, double *b);
+
+// %pythonprepend dspDft(double *x, unsigned int ns, double **a, double **b)
+// %{
+	// printf("Xxx");
+// %}
+
+// %pythonappend dspDft(double*, unsigned int, double**, double**)
+// %{
+	// printf("Xxx");
+// %}
+
+%feature("autodoc", "1");
+extern int dspFft(double *x, unsigned int ns, double *a, double *b);
+
 
 
 

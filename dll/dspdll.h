@@ -11,15 +11,8 @@
 extern "C" {
 #endif
 
-DLLIMPORT 
-double * pdsCorr(double *a, unsigned int sa, double *b, unsigned int sb);
-
-DLLIMPORT 
-double * pdsxCorr(double *x, double *y, int N, int m);
-
-DLLIMPORT 
-void pdsDft(unsigned int Namostras, double *Amostras, double *an, double *bn);
-
+EXPORTING void
+dspDft(double *samples, unsigned int ns, double *an, double *bn);
 
 #ifdef _MSC_VER
 }

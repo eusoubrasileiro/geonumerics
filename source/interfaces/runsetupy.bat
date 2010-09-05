@@ -6,4 +6,6 @@
 @rem del *.pyd
 @rem make -f makefile
 @rem now this one here works properly
+copy ..\c\v.c .
+swig.exe -python *.i
 python setup.py build_ext --inplace

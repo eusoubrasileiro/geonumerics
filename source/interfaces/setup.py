@@ -7,11 +7,14 @@ from os import system
 
 # put a call to swig from here before compiling
 # create _wrap.c file
-system('swig.exe -python *.i')
+#system('')
 #since is very dificult to set the paths of source etc.. just put everything in
 # the same folder and them compile
-system('copy ..\c\dsprocessing.c .')
+#system('copy ..\c\v.c . ')
+system('copy ..\c\dsprocessing.c .') # everything is included here
 system('copy ..\c\dsprocessing.h .')
+system('copy ..\c\dspFft.c .')
+
 
 py_module = Extension('_dsprocessing', sources=['dsprocessing_wrap.c', 'dsprocessing.c'],)
 
@@ -24,4 +27,4 @@ setup (name = 'dsprocessing',
        )
 
 # clean back what should not be in this folder
-system('del dsprocessing.c dsprocessing.h')
+system('del dsprocessing.c dsprocessing.h v.c dspFft.c')
