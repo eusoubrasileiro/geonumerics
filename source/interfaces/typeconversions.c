@@ -66,3 +66,34 @@ PyObject *vector_to_PyList(double *vec, int size)
     /* Return the Python List */
     return result;
 }
+
+/*****************************************************************************/
+
+/* 
+Create a pyList with 2 collums
+from two double arrays
+*/
+PyObject *Arrays2_to_PyList(double *a, double *b, int length)
+{
+    int i;
+    PyObject *tmp, *result;
+
+    /* Create the new list object */
+    result = PyList_New(length);
+
+    /* Now set the elements in it with the 2 elements */
+    for(i=0; i<length; i++)
+    {
+        /* Create a new buffer row */
+        tmp = PyList_New(2);
+        
+        PyList_SetItem(tmp, 0, PyFloat_FromDouble(a[i]));
+        PyList_SetItem(tmp, 1, PyFloat_FromDouble(b[i]));
+
+        /* Now put the row in the $result */
+        PyList_SetItem(result, i, tmp);
+    }
+
+    /* Return the Python List */
+    return result;
+}
