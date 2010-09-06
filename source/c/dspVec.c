@@ -77,7 +77,39 @@ dspDetrendLinear(double* x, unsigned int N)
 		x[i] -= a_b[0] + a_b[1]*i;
 	}
 	
-	return ab;
+	return a_b;
+}
+
+
+/* 
+could be replaced by some memory move.. 
+should i put a memory free on *x after?
+*/
+double*
+dspAppend(double *x, unsigned int nx, double *toappend, unsigned int nap)
+{
+    unsigned int i;
+    double *x_ap = (double*) malloc(sizeof(double)*(nx+nap));
+    
+    for(i=0; i<nx; i++)
+        x_ap[i] = x[i];
+        
+     for(i=nx; i<nx+nap; i++)
+        x_ap[i] = toappend[i];    
+    
+    return x_ap;
+}
+
+double*
+dspZeros(unsigned int n)
+{
+    unsigned int i;
+    double *zeros = (double*) malloc(sizeof(double)*n);
+    
+    for(i=0; i<n; i++)
+        zeros[i] = 0;
+        
+    return zeros;
 }
 
 double*
@@ -89,7 +121,7 @@ dspRange(double begin, double end, double step)
         return NULL;
 	
 	// one sample more because its a closed interval
-	double* range = new double[++n];
+	double* range = (double*) malloc(sizeof(double)*++n);
 
 	for(i=0; i<n; i++)                
 		range[i] = begin+i*step;
@@ -121,9 +153,9 @@ from [x0, xf] with dx=step
 */
 
 double*
-dspSampleat_(double x0, double xf, double step, double (*func)(double x))
+dspSampleat_(double x0, double xf, double step, double (*pfunc)(double x))
 {
-    unsigned int n = (unsigned int) (xf-x0)/step;
+    unsigned int i, n = (unsigned int) (xf-x0)/step;
     double x;
     /* closed interval one more sample */
     double *values = (double*) malloc(sizeof(double)*++n);

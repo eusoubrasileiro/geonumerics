@@ -13,6 +13,7 @@ Biblioteca de processamento digital de sinais
 #include <stdlib.h>
 #include "dspVec.c" /* should change someway */
 #include "dspFFT.c"
+#include "dspFilters.c"
 
 /*
 a alegria da convolução
@@ -299,34 +300,5 @@ dspEspectro(FILE *saida, double *a, double *b, unsigned int npontos, double txam
     /* coeficiente Epectro de frequencia */
     for(k=0; k<npontos; k++) /* precorre todos os coeficientes */
      fprintf(saida, "%.2f %.2f \n", k/(npontos*txamos), sqrt(a[k]*a[k]+b[k]*b[k]));
-}
-
-/*
-IIR - infinite impulse response
-
-Monta um filtro "caixa" no tempo, dados
-1) A frequencia de corte Fc
-2) Ordem do filtro: On*2+1 = N:numero de amostras do filtro
-3) A taxa de amostragem do filtro (dt) (deve ser igual ao do sinal à ser filtrado)
-pq senao vc tah mulptiplicando outra coisa na frequencia...
-
-A expressao para o filtro é (inversa da caixa na frequencia)
-
-Box(t)  =  ( A sin(2 pi Fc t) ) / ( pi t )
-
-A = dt (tx de amostragem)
-
-O tamanho do filtro no tempo eh ( N dt )
-A amostragem do filtro no tempo é feito de t:
--(N dt)/2 ate (N dt)/2
-para garantir a simetria do filtro nao modificando seu espectro
-o Box(0) no limite eh igual à
-
-*/
-
-double
-*dspIIRBox(double Fc, unsigned int On, double dt){
-
-    return 0;
 }
 
