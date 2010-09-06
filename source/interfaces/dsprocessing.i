@@ -125,10 +125,13 @@ the arguments names are taking in consideration if they are placed
 
 /* 
 Finally dspDetrendLinear its output is not gonna be void 
-its gonna be a list 
+Also return the coeficients A+B*x as an list
+list[0] = A 
+list[1] = B 
+Those are not yet exposed to python.
 */
 %feature("autodoc", "1");
-extern void dspDetrendLinear(double *x, unsigned int N);
+extern double* dspDetrendLinear(double *x, unsigned int N);
 
 
 

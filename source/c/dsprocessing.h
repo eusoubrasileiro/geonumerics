@@ -4,7 +4,7 @@
 
 extern double* dspLinear(double* y, unsigned int N);
 
-extern void dspDetrendLinear(double* x, unsigned int N);
+extern double* dspDetrendLinear(double* x, unsigned int N);
 
 extern int dspDft(double *x, unsigned int ns, double *a, double *b);
 

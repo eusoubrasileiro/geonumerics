@@ -4,5 +4,4 @@ Trapezoidal Low pass
 FFt convolution
 Hanning window
 
-Find a FFTW or FFT c code already working... or no
-put here inside or find a dll?
+My fft is Perfect.just create the IFFT!!

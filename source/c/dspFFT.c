@@ -8,7 +8,11 @@ Fast Fourier Part
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "v.c" /* should change someway */
+#include "dspVec.c" /* should change someway */
+
+#ifndef _DSPFFT_H_
+#define _DSPFFT_H_
+
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795
@@ -247,5 +251,4 @@ dspFft_(double *samples, unsigned int ns, double **an, double **bn){
 	return dspFft(samples, ns, as, bs);
 }
 
-
-
+#endif /* _DSPFFT_H_ */

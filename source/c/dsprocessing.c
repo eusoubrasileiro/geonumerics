@@ -11,7 +11,7 @@ Biblioteca de processamento digital de sinais
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "v.c" /* should change someway */
+#include "dspVec.c" /* should change someway */
 #include "dspFFT.c"
 
 /*
@@ -300,67 +300,6 @@ dspEspectro(FILE *saida, double *a, double *b, unsigned int npontos, double txam
     for(k=0; k<npontos; k++) /* precorre todos os coeficientes */
      fprintf(saida, "%.2f %.2f \n", k/(npontos*txamos), sqrt(a[k]*a[k]+b[k]*b[k]));
 }
-
-
-/*
-
-Simple Linear regression
-For a set of pairs (x_i, y_i)
-where x_i is given by the index
-find the coeficients [a, b]
-that the gives the minimum error
-for
-sum (yi - a - xi*b )**2 = E)
-N number of pairs
-return the coeficients a and b
-
-b = sum xy - (sum  x * 1/N sum y )
-b / = sum xx - [(sum x)^2 * 1/N ]
-&
-a = (1/N sum y)   - b * (1/N sum x)
-
-*/
-
-double* dspLinear(double* y, unsigned int N)
-{
-	double *a_b = (double*) malloc(sizeof(double)*2);
-	unsigned int i;
-	double xy, xx, x_, y_;
-	a_b[0]=a_b[1]=xy=x_=y_=xx=0;
-
-	for(i=0; i<N; i++){
-		xy += i*y[i]; xx += i*i;
-		x_ += i; y_ +=  y[i];
-	}
-	/*b = sum xy - (sum  x * 1/N sum y )
-	b / = sum xx - [(sum x)^2 * 1/N ]*/
-	a_b[1] = (xy - (x_*y_/N))/( xx - (x_*x_/N));
-	a_b[0] = (y_/N) - (a_b[1]*x_/N);
-
-	return a_b;
-}
-
-
-/*
-remove the linear trend
-from the data use the function above to
-get a and b
-make X = X - (a + b*xi)
-where xi is the array index
-*/
-
-void dspDetrendLinear(double* x, unsigned int N)
-{
-	unsigned int i;
-	double* a_b = dspLinear(x, N);
-
-	for(i =0; i<N; i++)
-	{
-		x[i] -= a_b[0] + a_b[1]*i;
-	}
-}
-
-
 
 /*
 IIR - infinite impulse response
