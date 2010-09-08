@@ -1,8 +1,8 @@
 /* **************************************************************************
 
    Some helper functions to convert between Python lists and C arrays.
- Thanks to Leo
- 
+ Thanks to Leo 
+
    ************************************************************************** */
 
 /* PYLIST_TO_VECTOR */

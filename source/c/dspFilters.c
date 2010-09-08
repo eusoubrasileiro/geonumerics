@@ -4,8 +4,8 @@
 #include "dspVec.c" /* should change someway */
 #include "dspFFT.c" /* FFT and IFFT */
 
-#ifndef _DSPVEC_H_
-#define _DSPVEC_H_
+#ifndef _DSPFILTERS_H_
+#define _DSPFILTERS_H_
 
 
 #ifndef M_PI
@@ -35,7 +35,7 @@ rtbtw desired relative bandwidth transition (0.2 is normally good)
 fc cuttof frequency (filter frequency cuttof)
 dt sample rate for the filter
 */
-#define filter_size(rtbtw, fc, dt) ((unsigned int) (2/(rtbtw)*(fc)*(dt))
+#define filter_size(rtbtw, fc, dt) ((unsigned int) (2/(rtbtw)*(fc)*(dt)))
 /*
 gets the next odd integer 
 unsigned int input
@@ -50,63 +50,97 @@ dspFilterConvFft(double* signal, unsigned int ns,
     double* filter_kernel, unsigned int nf, 
     int detrend_option)
 {
-	unsigned int i, nf_2; /* counter */
+	unsigned int i, nf_2; /* counter, half size filter */
     double* linear_ab; /* original trend removed from the signal (coeficients a+b*x */	
+
+    // half sizes of filter
+    double* filter_beg;
+    double* filter_end;
+    unsigned int nf_beg, nf_end; /* sizes for those pieces */
+    unsigned int ns_ = ns; /* new signal size due/during the process */
+    unsigned int n_2; /* power 2 size */
+    
+    // just to not modify the original guy 
+    double* signal_ = dspClone(signal, ns);
+    double* filter_kernel_ = dspClone(filter_kernel, nf);
     
     if(detrend_option==DETREND_LINEAR){    
     	/* first remove the stationary to
         avoid problems that might exists, linear removal */
-    	linear_ab = dspDetrendLinear(signal, ns);
+    	linear_ab = dspDetrendLinear(signal_, ns);
     	/* store the original trend */    
     }
     
     /* filter kernel must be odd to have a simetric convolution */
     if(nf%2 == 0)    
-        return null;    
+        return NULL;    
         
-    Sor = ns;
-
-    if(ns%2 == 0)//must be odd
-        return NULL;
-
     nf_2 = (nf-1)/2; // half size of the filter
+    nf_beg = nf_2; // initial part filter due necessary odd size not equal
+    nf_end = nf_2+1; // final part filter
 
     // easy part just padding zeros, with the half size that is bigger
-    signal = dspAppend(signal, ns, dspZeros(nf_2+1), nf_2+1); 
+    signal_ = dspAppend(signal_, ns, dspZeros(nf_2+1), nf_2+1); 
     
-    Ssize = ns+nf_2+1; // signal size, now signal is bigger, more samples
+    ns_ = ns+nf_2+1; // signal size, now signal is bigger, more samples
 
-    // wrap around form modification
-    // the above creates simetrecally around 0
-    fir_hannEnd = fir_hann[0:Fhsize]; #size ...
-    fir_hannBeg = fir_hann[Fhsize:]; # size ...
+    // wrap around form (numerical recipes) modification, ... the end the beg 
+    // closed intervals thats why the -1   
+    filter_end = dspGetat(filter_kernel_, 0, nf_2-1); // size : (nf-1)/2 = nf_2
+    filter_beg = dspGetat(filter_kernel_, nf_2, nf-1); // size : (nf-1)/2 + 1 = nf_2 + 1
+    
     // make the same size the input signal, considering  the signal size greater than the filter
     // case the signal is smaller than filter
     // putting zeros in the hole between the initial and end part of the wrap around form!
-    if(Ssize-(Fhsize*2+1) >= 0):
-        fir_hannBeg = numpy.append(fir_hannBeg, numpy.zeros(Ssize-(Fhsize*2+1)));
+    if(ns > nf){
+        filter_beg = dspAppend(filter_beg, nf_2+1, dspZeros(ns-nf), ns-nf);
+        nf_beg += ns-nf;
+        nf = nf_beg + nf_end;
+        // makes nf == ns case ns > nf 
+    }
 
-    #put in the wrap around form
-    fir_hann = numpy.append(fir_hannBeg, fir_hannEnd);
-    Sfsize = numpy.size(fir_hann);
+    // put in the wrap around form, 
+    // filter_beg will be freed
+    filter_kernel_ = dspAppend(filter_beg, nf_beg, filter_end, nf_end);
+    // free also because they are not needed anymore
+    free(filter_end);   
 
-    if(Ssize < Sfsize): # the else condition of above
-        # they dont have the same suze
-        # padd the input signal with zeros until they have the same size
-        # to be able to perform the convolution
-        signal = numpy.append(signal, numpy.zeros(Sfsize-Ssize));
+    // now guarantee the other side for equal size arrays
+    if(ns_ < nf){ // almost the else condition of above ns_ != nf
+        // in the case they still dont they dont have the same suze
+        // padd the input signal with zeros until they have the same size
+        // to be able to perform the convolution
+        signal_ = dspAppend(signal_, ns_, dspZeros(nf-ns_), nf-ns_);
+        ns = ns+ (nf-ns_);
+    }
+    
+    // just to check 
+    fprintf(stderr,"Filter end %u", nf_end); 
+    fprintf(stderr,"Filter beg %u", nf_beg); 
+    fprintf(stderr,"Filter %u", nf); 
+    fprintf(stderr,"Signal %u", ns_); 
 
-    print "F End %d" % numpy.size(fir_hannEnd)
-    print "F Beg %d" % numpy.size(fir_hannBeg)
-    print "F %d" % numpy.size(fir_hann)
-    print "S %d" % numpy.size(signal)
+    // now here both must have the same size
+    // so just get it
+    n_2 = ns_; // or could be nf
+    
+    // padd with zeros before performing fft's
+    if(isPower2(ns_)==-1)
+    {
+        n_2 = nextPower2(ns_);   
+        signal_ = dspAppend(signal_, ns_, dspZeros(n_2-ns), n_2-ns);
+        filter_kernel_ = dspAppend(filter_kernel_, ns_, dspZeros(n_2-ns), n_2-ns);        
+    }
 
-    sigrs = pylab.real(pylab.ifft(pylab.fft(signal)*pylab.fft(fir_hann)));
+    // to frequency (fft), multitply and get the inverse (ifft) (not normalized)
+    signal_ = dspIFftc( cMultv(dspFftc(signal, n_2), dspFftc(filter_kernel_, n_2), n_2), n_2); 
 
-    #python is nice hehhe
-    # signal = signal[:-(Fhsize+1)] #remove the last part added by the filter avoiding
-    sigrs_ = sigrs[:Sor]; # get the just the first part equivalent to the signal size
-    sigrs_ += trend; #add the trend back
+    // normalize the result, divide by the length ns_2
+    vMultv( (double) 1/n_2, n_2, signal_);
+
+    // get the just the first part equivalent to the signal size
+    // it's redundant since the result is just the first part
+    // signal_ = dspGetat(signal, 0, ns);
     
     if(detrend_option==DETREND_LINEAR){    
     	/* 
@@ -114,22 +148,23 @@ dspFilterConvFft(double* signal, unsigned int ns,
         a + b*i
         */
     	for(i=0; i<ns; i++)
-    	   signal += linear_ab[0] + linear_ab[1]*i;
+    	   signal_[i] += linear_ab[0] + linear_ab[1]*i;
     }
     
-    return sigrs;
-    
+    return signal_;    
 }
 
 /*
     Hanning window working for smooth the frequency response
     removing ripples most used one
 */
+
 double*
 dspWindowHann(unsigned int n)
-{    
+{
+    double Fx(double x, unsigned int n){ return sin(x*M_PI/(n-1)); }    
     /* thats because that func returns a close interval */    
-    return dspSampleat_(0, n-1, 1, double (*Fx)(double x){ return sin(x*M_PI/(n-1)) });
+    return dspSampleat(0, n-1, 1, Fx);
 }
 
 /*
@@ -151,25 +186,24 @@ dspIIR_SincTrapezLowPass(unsigned int n, double dt, double fc, double ramp, int 
     unsigned int i;
 	// this filter is the result of convolution of two box in frequency
 	// the box A with its side/2 = a
-	double a = Ramp/2;
+	double a = ramp/2;
 	// th box B with its side/2 = b
 	double b = fc - (ramp/2);
+	double* x = NULL; // imput x/t values to sample the filter operator 
+	double* filter = (double*) malloc(sizeof(double)*n); // filter kernel sampled
+	double* window_taper;
 
 	// this doesnt work, ramp = 0, and other errors 
 	/* "Impossible size of ramp" */
 	if(a==0 || ramp > fc || fc < 1/dt)
 	   return NULL;		
 
-	double* x = NULL; // imput x/t values to sample the filter operator 
-	double* filter = (double*) malloc(sizeof(double)*n); // filter kernel sampled
-	double* window_taper;
-
 	// Amostra simetricamento o operador do filtro em torno do zero
 	// nao importa se o numero de pontos for par ou impar, exitem opcoes pros dois casos	
 	
 	// caso seja impar amostra incluindo o 0,  amostra perfeitamente simetrico em torno do zero
 	// um workaround eh utilizado para evitar divsao por 0 e utiliza-se o limite em 0 para setar o valor no 0
-	if (N % 2 != 0)
+	if (n % 2 != 0)
 	{		
         /* simetric around 0 */
 		x = dspRange(-dt*(n-1)/2, dt*(n-1)/2, dt);
@@ -242,7 +276,7 @@ dspIIR_SincTrapezLowPassApply(double *signal, unsigned int ns, double dt, double
 	nf = (nf < 101) ? 101 : nf; // minimum size 101 ??      
 	
 	// Creates the filter Kernel
-	filter_kernel = TrapezoidalLowPass(nf, dt, fc, ramp, HANNING_WINDOW);
+	filter_kernel = dspIIR_SincTrapezLowPass(nf, dt, fc, ramp, HANNING_WINDOW);
 	
 	// applys the filter fft convolution clipping and whatever... doesnt alter
 	// the signal input array

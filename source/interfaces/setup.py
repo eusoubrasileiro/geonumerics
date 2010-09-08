@@ -10,10 +10,11 @@ from os import system
 #system('')
 #since is very dificult to set the paths of source etc.. just put everything in
 # the same folder and them compile
-#system('copy ..\c\v.c . ')
+system('copy ..\c\dspVec.c . ')
 system('copy ..\c\dsprocessing.c .') # everything is included here
 system('copy ..\c\dsprocessing.h .')
 system('copy ..\c\dspFft.c .')
+system('copy ..\c\dspFilters.c .')
 
 
 py_module = Extension('_dsprocessing', sources=['dsprocessing_wrap.c', 'dsprocessing.c'],)
@@ -27,4 +28,8 @@ setup (name = 'dsprocessing',
        )
 
 # clean back what should not be in this folder
-system('del dsprocessing.c dsprocessing.h v.c dspFft.c')
+system('del dspVec.c ')
+system('del dsprocessing.c') # everything is included here
+system('del dsprocessing.h')
+system('del dspFft.c')
+system('del dspFilters.c')

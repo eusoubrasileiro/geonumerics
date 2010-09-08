@@ -15,6 +15,7 @@ Dft_Fft_Demo(){
     double *an, *bn; /* real and imaginary coeficients */
 	double *samples_2;	/* padded with zeros signal */
 	unsigned int time_;
+	double *isamples; /* ifft result */
 
     /* numero de amostras que vem, tudo o que estiver no arquivo */
 
@@ -22,6 +23,9 @@ Dft_Fft_Demo(){
     for(i=0; scanf("%lf", &samples[i])==1; i++){} /* leh as amostras */
     ns=i;  
 
+    ns_2 = ns;
+    samples_2 = samples;
+    
 	/* Comparing FFT with DFT, 
 	so the input signal must be power2 size 
 	because my function doesnt work for not power 2 size */
@@ -58,6 +62,11 @@ Dft_Fft_Demo(){
     fprintf(stderr, "\n complex coefs Fft\n");
     for(i=0; i<ns_2; i++) /* imprime as belezinhas */
         printf("%lf %lf\n", an[i], bn[i]);
+
+    /* IFft after */
+    dspIFft_(an, bn, ns_2, &isamples);
+    fprintf(stderr, "\n Inverse Fft real values\n");
+    vPrintf(stderr, isamples, ns_2);    
 
    free(an);
    free(bn);

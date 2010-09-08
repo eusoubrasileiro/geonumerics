@@ -2,7 +2,11 @@
 
 Biblioteca de processamento digital de sinais
 Fast Fourier Part
-
+Not:
+    Dft/IDft/FFT/IFFT
+    are not normalized transform so
+    doing fft(x) and after ifft(x) 
+    u get x*N, x scaled by N (number of samples)
 */
 
 #include <stdio.h>
@@ -45,6 +49,18 @@ cMult(complex a, complex b)
 	complex ret;
 	ret.re = a.re*b.re-a.img*b.img;
 	ret.img = a.re*b.img+a.img*b.re;
+	return ret;
+}
+
+complex*
+cMultv(complex* a, complex* b, unsigned int n)
+{
+	unsigned int i;
+    complex* ret = (complex*) malloc(sizeof(complex)*n);
+    for(i=0; i<n; i++){
+        ret[i].re = a[i].re*b[i].re-a[i].img*b[i].img;
+    	ret[i].img = a[i].re*b[i].img+a[i].img*b[i].re;
+	}
 	return ret;
 }
 
@@ -94,6 +110,31 @@ vGetOddSamples(double* Sx, unsigned int n)
 		odd[i] = Sx[i*2+1]; 
 	return odd;
 }
+
+// just for ns%2==0 signals
+complex*
+cGetEvenSamples(complex* Sx, unsigned int n)
+{
+	unsigned int i;
+	complex *even = (complex*) malloc(sizeof(complex)*n/2);
+	for(i=0; i<n/2; i++) /* gets ns=5: indexes 0, 2, 4, 6, 8 .. */
+		even[i] = Sx[i*2]; 
+	return even;
+}
+
+// just for ns%2==0 signals
+complex*
+cGetOddSamples(complex* Sx, unsigned int n)
+{
+	unsigned int i;
+	complex *odd = (complex*) malloc(sizeof(complex)*n/2);
+	for(i=0; i<n/2; i++) /* gets ns=5: 1, 3, 5, 7, 9 .. */
+		odd[i] = Sx[i*2+1]; 
+	return odd;
+}
+
+
+
 
 /*
 -1 or 1 for true or false
@@ -146,32 +187,27 @@ dspInternFft(double* samples, unsigned int ns)
 	_minus.re = -1;
 	_minus.img = 0;
 	/* the fft result complex and imaginary parts */
+	X = (complex*) malloc(sizeof(complex)*ns);
 	
 	if(ns == 1) /* simplest case */
 	{
 		// just here we need to alloca in the other case we already have
-		// it allocated by the Join Funct
-		X = (complex*) malloc(sizeof(complex));
-		X[0].re = samples[0]; /* samples[0]*exp(??? * 0) = samples[0] */
+		X[0].re = samples[0]; /* samples[0]*exp(2*pi*i*k=0/N) = samples[0] */
 		X[0].img = 0;
 	}
 	else
 	if(ns == 2) /* 2nd simplest case */
 	{
-		X = (complex*) malloc(sizeof(complex)*ns);
 		X[0].re = samples[0] + samples[1];
 		X[1].re = samples[0] - samples[1]; 
-		X[0].img = X[1].img = 0;
-
-		return X;
+		X[0].img = X[1].img = 0;	
 	}  
     else
 	{
 		even = vGetEvenSamples(samples, ns);
 		odd = vGetOddSamples(samples, ns);
 		Even = (complex*) dspInternFft(even, ns/2);
-		Odd = (complex*) dspInternFft(odd, ns/2);
-		X = (complex*) malloc(sizeof(complex)*ns);
+		Odd = (complex*) dspInternFft(odd, ns/2);	
 
 		for(k = 0 ; k<ns/2; k++){
             /* Even : even part */ 
@@ -201,6 +237,24 @@ dspInternFft(double* samples, unsigned int ns)
     */
 
 	return X;
+}
+
+/*
+complex way
+*/
+
+complex*
+dspFftc(double *samples, unsigned int ns)
+{
+	complex* ret;
+
+	if(isPower2(ns)==-1)
+		return NULL;
+
+	/* already power 2 just make the math */
+	ret = dspInternFft(samples, ns);
+	
+	return ret;
 }
 
 
@@ -249,6 +303,142 @@ dspFft_(double *samples, unsigned int ns, double **an, double **bn){
 	as = an[0];
 	bs = bn[0]; 
 	return dspFft(samples, ns, as, bs);
+}
+
+
+/*
+IFft coley Tukey recursive way
+just for real data input (meaning complex spectrum of real data),
+optimzed to simetrical spectrum ( automatic from Coley tukey algorithm definiton)
+Just power two size's allowed to enter here
+*/
+
+complex*
+dspInternIFft(complex* fsamples, unsigned int ns)
+{	
+	unsigned int k;
+	complex *X, *Even, *Odd;
+	complex *odd, *even;
+	complex _minus;
+	/* just to be used to multiply for -1 */
+	_minus.re = -1;
+	_minus.img = 0;
+	/* the fft result complex and imaginary parts */
+	X = (complex*) malloc(sizeof(complex)*ns);
+	
+	if(ns == 1){ /* simplest case */
+		X[0] = fsamples[0]; /* x[0]*exp(2*pi*i*k=0/N) = x[0] */
+	}
+	else
+	if(ns == 2) /* 2nd simplest case */
+	{	
+		X[0] = cSum(fsamples[0], fsamples[1]);
+		X[1] = cSum(fsamples[0], cMult(_minus, fsamples[1])); 
+  	}  
+    else
+	{
+		even = cGetEvenSamples(fsamples, ns);
+		odd = cGetOddSamples(fsamples, ns);
+		Even = (complex*) dspInternIFft(even, ns/2);
+		Odd = (complex*) dspInternIFft(odd, ns/2);
+		
+		for(k = 0 ; k<ns/2; k++){
+            /* Even : even part */ 
+			/* Odd : odd part */
+			/* could improve performance here removing all those function calls to simple math */
+            X[k] = cSum(Even[k], cMult( cExpImg((double) 1*2*M_PI*k/ns), Odd[k]) );
+            X[k+(ns/2)] = cSum(Even[k], cMult( cMult( cExpImg((double) 1*2*M_PI*k/ns), Odd[k]) , _minus));
+		}
+		free(even);
+        free(odd);		
+		free(Even);
+		free(Odd);
+	}
+	/*
+    This bellow is already exploited above so no more simetry to explore
+    create the other half N/2 -> N, just simetric copy around ns_orig/2 
+	
+	for input signal size N = 4	
+	X[3]=*X[2-1]; (index 2 point of simetry)
+	
+	where * is conjugate o X
+
+	for input signal size N=8
+	X[5]=*X[4-1]; (index 4 point of simetry)
+	X[6]=*X[4-2]; (index 4 point of simetry)
+	X[7]=*X[4-3]; (index 4 point of simetry)
+    */
+
+	return X;
+}
+
+/*
+good sense
+*/
+
+int
+dspIFft(double *an, double *bn, unsigned int ns, double *samples)
+{
+	unsigned int i; 
+	complex* ret;
+	complex* fsamples;
+
+	if(isPower2(ns)==-1)
+		return -1;
+
+    fsamples = (complex*) malloc(sizeof(complex)*ns);
+
+	for(i=0; i<ns; i++){
+	   fsamples[i].re = an[i];
+       fsamples[i].img = bn[i];
+	}
+	
+	/* already power 2 just make the math */
+	ret = dspInternIFft(fsamples, ns);
+	
+	/* copy back from the coeficient form 
+    just the real part (expected that the spectrum was from a real function */
+	for(i=0; i<ns; i++)
+		samples[i] = ret[i].re;	
+
+	free(ret);
+	free(fsamples);
+	
+	return 0;
+}
+
+int
+dspIFft_(double *an, double *bn, unsigned int ns, double **samples){    
+   	double *ssamples;
+    /* allocing to avoid problems */
+	*samples = (double*) malloc(sizeof(double)*ns);
+	ssamples = samples[0];
+	return dspIFft(an, bn, ns, ssamples);
+}
+
+
+double*
+dspIFftc(complex* fsamples, unsigned int ns)
+{
+	unsigned int i; 	
+	complex* ret;
+	double* samples;
+
+	if(isPower2(ns)==-1)
+		return NULL;
+
+	/* already power 2 just make the math */
+	ret = dspInternIFft(fsamples, ns);
+	
+	samples = (double*) malloc(sizeof(double)*ns);
+	/* copy back from the coeficient form 
+    just the real part (expected that the spectrum was from a real function */
+	for(i=0; i<ns; i++)
+		samples[i] = ret[i].re;	
+
+	free(ret);
+	
+	return samples;
 }
 
 #endif /* _DSPFFT_H_ */
