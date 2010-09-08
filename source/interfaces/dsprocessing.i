@@ -200,6 +200,57 @@ extern int dspFft(double *x, unsigned int ns, double *a, double *b);
 
 
 
+/* 
+Out typemap for 2 double array  
+result is the  result from the function called, or "result" contains that
+size_pyList contains the initial list size,
+*/
+%typemap(argout) (double *signal, unsigned int ns, double dt, double fc, double ramp)
+{
+	/* check return status */
+	if(result == NULL)
+		return NULL;
+	else 
+	{
+		$result = vector_to_PyList(result, size_pyList);
+		/* Check if there was any error in the conversion */
+		if(!$result)
+	    {
+	        return NULL;
+	    }
+	}
+}
+
+/* 
+as its a mult type map for each block of variables it will only accept one input
+In typemap for converting pyList inputs into array and also get 
+the size of the pyList and call correctly the function  
+$1 is the first argument of the function that will be called 
+$2 is the second and so on..
+$input is the input object expected here a List
+*/
+%typemap(in) (double *signal, unsigned int ns)
+{
+	 /* Check if is a list */
+	  if (PyList_Check($input)) {
+		/* convert the list to an array and also get's its size */
+		$1 = PyList_to_vector($input, &size_pyList);
+		$2 = size_pyList;  		
+	  }
+	  else {
+	    PyErr_SetString(PyExc_TypeError,"not a list");
+	    return NULL;
+	  }		
+}
+
+%typemap(in) double
+{
+	$1 = PyFloat_AsDouble($input);
+}
+
+%feature("autodoc", "1");
+extern 
+double* dspIIR_SincTrapezLowPassApply(double *signal, unsigned int ns, double dt, double fc, double ramp);
 
 
 

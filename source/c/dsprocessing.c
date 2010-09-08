@@ -236,8 +236,8 @@ Ndiscrete fourier transform not normalized by N
 
 also not very efficient due not taking the oportunity of having a simetrical spectrum
 
-
-
+Should implement the inverse (ifft) but is meaningless
+since I'm not going to use.
 
 */
 

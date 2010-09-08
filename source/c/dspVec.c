@@ -80,10 +80,22 @@ dspDetrendLinear(double* x, unsigned int N)
 	return a_b;
 }
 
+double*
+dspClone(double *x, unsigned int n)
+{
+    unsigned int i;
+    double *clone = (double*) malloc(sizeof(double)*n);
+    
+    for(i=0; i<n; i++)
+        clone[i] = x[i];
+        
+    return clone;
+}
 
 /* 
 could be replaced by some memory move.. 
 should i put a memory free on *x after?
+ALWAYSS free the input array
 */
 double*
 dspAppend(double *x, unsigned int nx, double *toappend, unsigned int nap)
@@ -96,6 +108,8 @@ dspAppend(double *x, unsigned int nx, double *toappend, unsigned int nap)
         
      for(i=nx; i<nx+nap; i++)
         x_ap[i] = toappend[i];    
+    
+    free(x);
     
     return x_ap;
 }
@@ -116,15 +130,35 @@ double*
 dspRange(double begin, double end, double step)
 {
 	unsigned i, n = (unsigned int) ((end-begin)/step);
-	
-    if(end<begin || step==0)
-        return NULL;
-	
 	// one sample more because its a closed interval
 	double* range = (double*) malloc(sizeof(double)*++n);
+	
+    if(end<begin || step==0)
+     return NULL;
+
 
 	for(i=0; i<n; i++)                
 		range[i] = begin+i*step;
+
+	return range;
+}
+
+/*
+get a close interval of samples
+must be inside n range otherwise exception 
+*/
+double*
+dspGetat(double *x, unsigned int begin, unsigned int end)
+{
+	unsigned i, n = (unsigned int) (end-begin);
+	// one sample more because its a closed interval
+	double* range = (double*) malloc(sizeof(double)*++n);
+	
+    if(end<begin)
+        return NULL;
+
+	for(i=begin; i<=end; i++)                
+		range[i-begin] = x[i];
 
 	return range;
 }
@@ -199,11 +233,11 @@ por um valor (valor)
 */
 
 void
-vMultv(double valor, int tamanho, double *vetor){
-    register int i;
+vMultv(double value, unsigned int n, double *array){
+    register unsigned int i;
 /* multiplica todos os termos da linha */
-    for(i=0; i<tamanho; i++)
-        vetor[i]*=valor;
+    for(i=0; i<n; i++)
+        array[i]*=value;
 }
 
 
