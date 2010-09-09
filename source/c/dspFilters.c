@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h> /* va_list */
 #include "dspVec.c" /* should change someway */
 #include "dspFFT.c" /* FFT and IFFT */
 
@@ -35,12 +36,14 @@ rtbtw desired relative bandwidth transition (0.2 is normally good)
 fc cuttof frequency (filter frequency cuttof)
 dt sample rate for the filter
 */
-#define filter_size(rtbtw, fc, dt) ((unsigned int) (2/(rtbtw)*(fc)*(dt)))
+#define filter_size(rtbtw, fc, dt) (2/((rtbtw)*(fc)*(dt)))
 /*
 gets the next odd integer 
 unsigned int input
 */
-#define next_odd(n) ((n)%2==0)? (n)+1 : (n);
+#define next_odd(n) ((unsigned int)(n)%2==0)? (n)+1 : (n);
+
+
 
 
 
@@ -67,10 +70,12 @@ dspFilterConvFft(double* signal, unsigned int ns,
     if(detrend_option==DETREND_LINEAR){    
     	/* first remove the stationary to
         avoid problems that might exists, linear removal */
-    	linear_ab = dspDetrendLinear(signal_, ns);
+    	linear_ab = dspDetrendLinear(signal_, ns_);
     	/* store the original trend */    
     }
-    
+
+	vPrintf(stdout, signal_, ns);
+
     /* filter kernel must be odd to have a simetric convolution */
     if(nf%2 == 0)    
         return NULL;    
@@ -80,24 +85,30 @@ dspFilterConvFft(double* signal, unsigned int ns,
     nf_end = nf_2+1; // final part filter
 
     // easy part just padding zeros, with the half size that is bigger
-    signal_ = dspAppend(signal_, ns, dspZeros(nf_2+1), nf_2+1); 
+    signal_ = dspAppend(signal_, ns_, dspZeros(nf_2+1), nf_2+1); 
     
-    ns_ = ns+nf_2+1; // signal size, now signal is bigger, more samples
+    ns_ = ns_+nf_2+1; // signal size, now signal is bigger, more samples
 
+	vPrintf(stdout, signal_, ns_);
     // wrap around form (numerical recipes) modification, ... the end the beg 
     // closed intervals thats why the -1   
     filter_end = dspGetat(filter_kernel_, 0, nf_2-1); // size : (nf-1)/2 = nf_2
     filter_beg = dspGetat(filter_kernel_, nf_2, nf-1); // size : (nf-1)/2 + 1 = nf_2 + 1
-    
+    vPrintf(stdout, filter_beg, nf_beg);
+	vPrintf(stdout, filter_end, nf_end);
+
     // make the same size the input signal, considering  the signal size greater than the filter
     // case the signal is smaller than filter
     // putting zeros in the hole between the initial and end part of the wrap around form!
-    if(ns > nf){
-        filter_beg = dspAppend(filter_beg, nf_2+1, dspZeros(ns-nf), ns-nf);
-        nf_beg += ns-nf;
+    if(ns_ > nf){
+        filter_beg = dspAppend(filter_beg, nf_beg, dspZeros(ns_-nf), ns_-nf);
+        nf_beg += ns_-nf;
         nf = nf_beg + nf_end;
         // makes nf == ns case ns > nf 
     }
+
+	vPrintf(stdout, filter_beg, nf_beg);
+	vPrintf(stdout, filter_end, nf_end);
 
     // put in the wrap around form, 
     // filter_beg will be freed
@@ -111,14 +122,17 @@ dspFilterConvFft(double* signal, unsigned int ns,
         // padd the input signal with zeros until they have the same size
         // to be able to perform the convolution
         signal_ = dspAppend(signal_, ns_, dspZeros(nf-ns_), nf-ns_);
-        ns = ns+ (nf-ns_);
+        ns_ = ns+ (nf-ns_);
     }
     
     // just to check 
-    fprintf(stderr,"Filter end %u", nf_end); 
-    fprintf(stderr,"Filter beg %u", nf_beg); 
-    fprintf(stderr,"Filter %u", nf); 
-    fprintf(stderr,"Signal %u", ns_); 
+    fprintf(stdout,"Filter end %u\n", nf_end); 
+    fprintf(stdout,"Filter beg %u\n", nf_beg); 
+    fprintf(stdout,"Filter %u\n", nf); 
+    fprintf(stdout,"Signal %u\n", ns_); 
+	vPrintf(stdout,signal_, ns_);
+	vPrintf(stdout,filter_kernel_, nf);
+
 
     // now here both must have the same size
     // so just get it
@@ -128,15 +142,19 @@ dspFilterConvFft(double* signal, unsigned int ns,
     if(isPower2(ns_)==-1)
     {
         n_2 = nextPower2(ns_);   
-        signal_ = dspAppend(signal_, ns_, dspZeros(n_2-ns), n_2-ns);
-        filter_kernel_ = dspAppend(filter_kernel_, ns_, dspZeros(n_2-ns), n_2-ns);        
+        signal_ = dspAppend(signal_, ns_, dspZeros(n_2-ns_), n_2-ns_);
+        filter_kernel_ = dspAppend(filter_kernel_, ns_, dspZeros(n_2-ns_), n_2-ns_);        
     }
 
+	vPrintf(stdout, signal_, n_2);
+	vPrintf(stdout, filter_kernel_, n_2);
     // to frequency (fft), multitply and get the inverse (ifft) (not normalized)
-    signal_ = dspIFftc( cMultv(dspFftc(signal, n_2), dspFftc(filter_kernel_, n_2), n_2), n_2); 
+    signal_ = dspIFftc( cMultv(dspFftc(signal_, n_2), dspFftc(filter_kernel_, n_2), n_2), n_2); 
 
     // normalize the result, divide by the length ns_2
     vMultv( (double) 1/n_2, n_2, signal_);
+
+	vPrintf(stdout, signal_, n_2);
 
     // get the just the first part equivalent to the signal size
     // it's redundant since the result is just the first part
@@ -159,12 +177,20 @@ dspFilterConvFft(double* signal, unsigned int ns,
     removing ripples most used one
 */
 
+// normally would be nice make void *addpars point to a struct of parameters
+// if the additional parmeters are more than one
+double Hann(double x, void *addpars)
+{ 
+    unsigned int n;
+    n = *((unsigned int*) addpars);
+    return sin(x*M_PI/(n-1)); 
+}
+
 double*
 dspWindowHann(unsigned int n)
-{
-    double Fx(double x, unsigned int n){ return sin(x*M_PI/(n-1)); }    
-    /* thats because that func returns a close interval */    
-    return dspSampleat(0, n-1, 1, Fx);
+{   
+    /* n-1, because the func returns a closed interval */    
+    return dspSampleat_(0, n-1, 1, Hann, &n);
 }
 
 /*
@@ -195,7 +221,7 @@ dspIIR_SincTrapezLowPass(unsigned int n, double dt, double fc, double ramp, int 
 
 	// this doesnt work, ramp = 0, and other errors 
 	/* "Impossible size of ramp" */
-	if(a==0 || ramp > fc || fc < 1/dt)
+	if(a==0 || ramp > fc || fc > 1/(2*dt))
 	   return NULL;		
 
 	// Amostra simetricamento o operador do filtro em torno do zero
@@ -277,6 +303,7 @@ dspIIR_SincTrapezLowPassApply(double *signal, unsigned int ns, double dt, double
 	
 	// Creates the filter Kernel
 	filter_kernel = dspIIR_SincTrapezLowPass(nf, dt, fc, ramp, HANNING_WINDOW);
+	vPrintf(stdout, filter_kernel, nf);
 	
 	// applys the filter fft convolution clipping and whatever... doesnt alter
 	// the signal input array

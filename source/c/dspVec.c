@@ -107,7 +107,7 @@ dspAppend(double *x, unsigned int nx, double *toappend, unsigned int nap)
         x_ap[i] = x[i];
         
      for(i=nx; i<nx+nap; i++)
-        x_ap[i] = toappend[i];    
+        x_ap[i] = toappend[i-nx];    
     
     free(x);
     
@@ -121,7 +121,7 @@ dspZeros(unsigned int n)
     double *zeros = (double*) malloc(sizeof(double)*n);
     
     for(i=0; i<n; i++)
-        zeros[i] = 0;
+        zeros[i] = 0.0;
         
     return zeros;
 }
@@ -167,15 +167,18 @@ dspGetat(double *x, unsigned int begin, unsigned int end)
 /*
 Sample the function passed, with values at array x
 returns the array after sampling the function
+
+pfunc : is a pointer to a function to evaluate
+void *addpars  : are aditional parameters (if needed) to the function (pfunc)
 */
 double*
-dspSampleat(double *x, unsigned int n, double (*pfunc)(double x) )
+dspSampleat(double *x, unsigned int n, double (*pfunc)(double x, void* addpars), void* addpars) 
 {
     unsigned int i=0;
         /* closed interval one more sample */
     double *values = (double*) malloc(sizeof(double)*++n);
     for(i=0; i<n; i++)
-        values[i] = pfunc(x[i]);
+        values[i] = pfunc(x[i], addpars);
         
     return values;
 }
@@ -184,21 +187,23 @@ dspSampleat(double *x, unsigned int n, double (*pfunc)(double x) )
 Sample the function passed.
 Same above but with steps
 from [x0, xf] with dx=step
+
+pfunc : is a pointer to a function to evaluate
+void *addpars  : are aditional parameters (if needed) to the function (pfunc)
 */
 
 double*
-dspSampleat_(double x0, double xf, double step, double (*pfunc)(double x))
+dspSampleat_(double x0, double xf, double step, double (*pfunc)(double x, void* addpars), void* addpars)
 {
     unsigned int i, n = (unsigned int) (xf-x0)/step;
-    double x;
     /* closed interval one more sample */
     double *values = (double*) malloc(sizeof(double)*++n);
     
     if(xf<x0 || step==0)
         return NULL;
     
-    for(x=x0; x<=xf; x+=step)
-        values[i] = pfunc(x);
+    for(i=0; i<n; i++)
+        values[i] = pfunc(x0+step*i, addpars);
     
     return values;        
 }
@@ -208,11 +213,11 @@ dspSampleat_(double x0, double xf, double step, double (*pfunc)(double x))
 imprime o vetor ...
 */
 void
-vPrintf(FILE *saida, double *v, int n){
-    int i;
+vPrintf(FILE *saida, double *v, unsigned int n){
+    unsigned int i;
     fprintf(saida, "\n[ ");
     for(i=0; i<n; i++)
-    fprintf(saida, "%3.2g ", v[i]);
+    fprintf(saida, "%3.4g ", v[i]);
     fprintf(saida, " ]\n");
 }
 
