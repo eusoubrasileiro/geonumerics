@@ -441,4 +441,18 @@ dspIFftc(complex* fsamples, unsigned int ns)
 	return samples;
 }
 
+/* 
+convolution in the frequency domain using fft
+for doing so padd the input signals (with 0) if necessary 
+to perform the wrap around fft convolution
+avoiding circular convolution (numerical recipies)
+Before perform the fft they will have the same size.
+*/
+double*
+dspFftConv(double* signal_a, unsigned na, double* signal_b, unsigned nb)
+{
+    
+    return NULL;    
+}
+
 #endif /* _DSPFFT_H_ */

@@ -172,10 +172,10 @@ Use the main to call any of the demo examples
 
 int main(){ 
    
-	Dft_Fft_Demo();
+    Dft_Fft_Demo();
 	//Convolution_Demo();
 	//Correlation_Demo();
-	//Correlation_MatlabCode_Demo();
+	//Correlation_MatlabCode_Demo();    
 	printf("\n");
 	system("PAUSE");
 
