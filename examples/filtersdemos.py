@@ -50,7 +50,7 @@ def SincTrapezoidalLowPassNoise():
     a experiment with the trapezoidal low pass
     that's perfectly working, filter sampling is perfect
     and also the filtering process with the result
-    using NR wrapped around convolution
+    using NR wrapped around convolution (use FftConv3 its simpler)
     """
     s = samplesignals.Periodic_Noise(200, 0.05);
     N = numpy.size(s)
@@ -60,7 +60,8 @@ def SincTrapezoidalLowPassNoise():
     Nf = filters.FilterSize(RTbtw=0.2, Fc=3, dt=0.05);
     print " Filter number of samples %d" % Nf
     filter = filters.SincTrapezoidalLowPass(Nf, 0.05, 0.5, 3);
-    res  = filters.ConvFft(s, filter, 0.05, plot=True);
+    #res  = filters.ConvFft(s, filter, 0.05, plot=True);
+    res  = filters.ConvFft3(s, filter);
     pyplot.plotfftcompare(s, res, 0.05);
 
     return res;

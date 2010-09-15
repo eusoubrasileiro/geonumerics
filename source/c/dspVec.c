@@ -332,8 +332,8 @@ f(t) = f(-t)
 #define SWAP(a,b) temp=(a);(a)=(b);(b)=temp
 
 void
-vTimeInvert(double *v, int n){
-    int i, mid;
+vTimeInvert(double *v, unsigned int n){
+    unsigned int i, mid;
     double temp;
 
     /* central size of the vector*/
@@ -362,7 +362,7 @@ vTimeInvert(double *v, int n){
 	swap(v[1],v[4])
 	swap{v[2],v[3])
 	*/
-	for(i=0; i<mid; i++){ /* thousand of problems may arise it
+	for(i=0; i<mid; i++){ /* thousand of problems may arise if
 						  it snot for this '{''}' guys */
         SWAP(v[i], v[n-1-i]);
 	}

@@ -1,7 +1,9 @@
 Add to the c code :
 
-FFt convolution
++Plus:
+    Check Cross correlation implementation. 
+    Implement phase correlation.
+    Coherence implementation.
 
-My fft is Perfect.just create the IFFT!!
-
- Todo add Sequence numpy arrays Support 
+Finished
+Todo add Sequence numpy arrays Support 

@@ -111,11 +111,8 @@ Conv(a,b(-t)) != Conv(b, a(-t))
 double*
 dspCorr(double *a, unsigned int sa, double *b, unsigned int sb){
 
-    /* vPrintf(stdout, b, sb); */ /* pra checar se o time invert ta certo e ta */
     /* invert sempre a segunda */
-	/* not sure if this time invert is right */
     vTimeInvert(b, (int) sb);
-    //vPrintf(stdout, b, sb);
 
     /* and call the convolution */
     /* a(t) * b(-t) */
@@ -140,7 +137,7 @@ m = delay
 
 
 double
-Rxy(double *x, double *y, int N, int m){
+_Rxy(double *x, double *y, int N, int m){
     int i;
     double res=0;
     /* m can displace max equal N-1 , N-m = 1*/
@@ -151,7 +148,7 @@ Rxy(double *x, double *y, int N, int m){
 }
 
 double
-Ryx(double *y, double *x, int N, int m){
+_Ryx(double *y, double *x, int N, int m){
     int i;
     double res=0;
     /* m can displace max equal N-1 , N-m = 1*/
@@ -162,16 +159,8 @@ Ryx(double *y, double *x, int N, int m){
 
 }
 
-/*
-[2, 3] e [1, 2, 3, 4, 1]
-na correlacao normal seria
-
-
-
-
-*/
 double *
-dspxCorr(double *x, double *y, int N, int m){
+dspCorrx(double *x, double *y, int N, int m){
     int i;
 	double *xcorr;
 
@@ -182,7 +171,7 @@ dspxCorr(double *x, double *y, int N, int m){
     xcorr = (double*) malloc(sizeof(double)*(2*m+1));
 
     for(i=-m; i<=m; i++) /* cover 2m+1 */
-        xcorr[m+i] = (i>=0)? Rxy(x, y, N, i): Ryx(y, x, N, -i);
+        xcorr[m+i] = (i>=0)? _Rxy(x, y, N, i): _Ryx(y, x, N, -i);
 
 	return xcorr;
 }
