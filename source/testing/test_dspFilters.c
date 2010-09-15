@@ -11,26 +11,46 @@ whatch out for the maximum size
 void
 Fft_Convolution_Filtering_Test(){
     unsigned int i=0, ns; /* counter, input size */
-    double* samples; /* input signal */
+    double *samples, *result; /* input signal, result */
+	double error;
 	FILE *file;  
     samples = (double*) malloc ( sizeof(double) * nsMax );
 
     /* numero de amostras que vem, tudo o que estiver no arquivo */
-  
-    file = fopen("rnd.txt", "r");
-    
+   /* test data set from python */
+    file = fopen("input_rnd.txt", "r");    
     for(i=0; fscanf(file, "%lf", &samples[i]) == 1; i++){} /* leh as amostras */
-    ns=i;  
+    ns=i;     
+    fclose(file);    
     
-    fclose(file);
-    
-	vPrintf(stdout, samples, ns);
-    samples = dspIIR_SincTrapezLowPassApply(samples, ns, 0.01, 10, 5);    
-    vPrintf(stdout, samples, ns);
+    /* Fnyqust 0.01 = 50hz .. Fc = 10, Ramp = 5, detrend linear 
+    taper hanning window */
+    result = dspIIR_SincTrapezLowPassApply(samples, ns, 0.01, 10, 5);    
+
+    /* expected result from python */  
+    file = fopen("expected_out.txt", "r");    
+    for(i=0; fscanf(file, "%lf", &samples[i]) == 1; i++){} /* leh as amostras */
+    ns=i;     
+    fclose(file);    
+	
+	/* make the error , rms*/
+	for(i=0, error=0; i<ns; i++)
+		error += (samples[i]-result[i])*(samples[i]-result[i]);
+	
+	error = sqrt(error/ns);
+	
+	// altough not suceeding is working,.. comparison with python not perfect
+	if(error < 1E-7)
+		printf("suceed %g\n", error);
+	else
+		printf("didnt suced %g\n", error);
+	
 }
 
+/* testing check based on python output */
 int 
 main(int argc, char argv[]){
+    
     Fft_Convolution_Filtering_Test();    
     
     return 0;

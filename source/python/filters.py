@@ -217,11 +217,57 @@ def SincTrapezoidalLowPass(N, dt, Ramp, Fc, plot=False):
         pyplot.plotfftNabs_phase(y, dt)
 
     return y
+def ConvFft2(signal, filter):
+    """
+    Convolution with fft much faster approach
+    works exatcly as convolve(x,y)
+    """
+    ss = numpy.size(signal);
+    fs = numpy.size(filter)
+    # padd zeros all until they have the size N+M-1
+    signal = numpy.append(signal, numpy.zeros(fs+ss-1-ss));
+    filter = numpy.append(filter, numpy.zeros(fs+ss-1-fs));
+    signal = pylab.real(pylab.ifft(pylab.fft(signal)*pylab.fft(filter)));
+    return signal[:fs+ss-1];
+
+def ConvFft3(signal, filter):
+    """
+    Convolution with fft much faster approach
+    works exatcly as convolve(x,y) for y equal a filter response.
+    Conserving just the mid part equivalent to the original signal
+    so filter must be odd.
+    """
+    ssor = numpy.size(signal);
+    ss = ssor;
+    # put one sample 0 more, in case ss is not odd
+    # ss+fs-1 end up odd (must be odd to be able to remove the central part convolution)
+    #odd+odd -1 = odd
+    if(ss%2==0):
+        ss = numpy.append(signal, numpy.array([0]));
+    ss = numpy.size(signal);
+    fs = numpy.size(filter);
+    if(fs%2==0):
+        print "huahaia get out of here";
+        return
+    # padd zeros all until they have the size N+M-1
+    # and convolve
+    signal = ConvFft2(signal, filter)
+    beg = (ss+fs-1)/2-(ss-1)/2
+    end = (ss+fs-1)/2+(ss-1)/2
+    # just the central part of the convolution
+    signal = signal[beg-1:end+1]
+    # just the original size, avoiding if any zero was added
+    return signal[:ssor];
+
+
 
 def ConvFft(signal, filter, dt, detrend=pylab.detrend_linear, plot=False):
     """
     wrap around convolution from numerical recipes
-    including the default linear detrend for non stationay data
+    (wrap around advantage: the only advantage is the the output samples from
+    the convolution are ordered with the desired filtered signal begining in the sample[0])
+
+    Includes the default linear detrend for non stationay data
     the fft convolution also makes the things easier for working (clipping & performance)
     and hanning window over the filter kernel
     signal : input signal
@@ -285,7 +331,6 @@ def ConvFft(signal, filter, dt, detrend=pylab.detrend_linear, plot=False):
         pyplot.plotconvprocess(origsignal, signal, fir_hann, sigrs, sigrs_, dt);
 
     return sigrs_;
-
 
 def ConvEnd(sinal, filtro, dt, plot=False):
     """

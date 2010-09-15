@@ -2,8 +2,8 @@
 
 Biblioteca de processamento digital de sinais
 Fast Fourier Part
-Not:
-    Dft/IDft/FFT/IFFT
+Note:
+    Dft/FFT/IFFT
     are not normalized transform so
     doing fft(x) and after ifft(x) 
     u get x*N, x scaled by N (number of samples)
@@ -57,11 +57,18 @@ cMultv(complex* a, complex* b, unsigned int n)
 {
 	unsigned int i;
     complex* ret = (complex*) malloc(sizeof(complex)*n);
-    for(i=0; i<n; i++){
-        ret[i].re = a[i].re*b[i].re-a[i].img*b[i].img;
-    	ret[i].img = a[i].re*b[i].img+a[i].img*b[i].re;
-	}
+    for(i=0; i<n; i++)
+        ret[i] = cMult(a[i], b[i]);
+	
 	return ret;
+}
+
+void
+cConjugate(complex* a, unsigned int n)
+{
+    unsigned int i;
+     for(i=0; i<n; i++)
+    	a[i].img *=-1;
 }
 
 complex
@@ -442,17 +449,108 @@ dspIFftc(complex* fsamples, unsigned int ns)
 }
 
 /* 
-convolution in the frequency domain using fft
-for doing so padd the input signals (with 0) if necessary 
-to perform the wrap around fft convolution
-avoiding circular convolution (numerical recipies)
-Before perform the fft they will have the same size.
+Convolution in the frequency domain (same as in time but much faster)
+Convolve (signals * signalf) using fft/ifft (multiply on frequency)
+1) padd the signals (with zeros) to have the size Nsignals + Nsignalf - 1
+2) padd to the next power 2 size 
+3) fft, multiply and ifft
+done!
 */
 double*
-dspFftConv(double* signal_a, unsigned na, double* signal_b, unsigned nb)
-{
+dspConvFft(double* x, unsigned int nx, double* y, unsigned int ny)
+{ 
+    unsigned int n_2; /* power 2 size */    
+    // just to not modify the original guy 
+    double* sy = dspClone(y, ny);
+    double* sx = dspClone(x, nx);
+    double* convsxsy;
     
-    return NULL;    
+    // append with zeros until nx+ny-1
+    sy = dspAppend(sy, ny, dspZeros(ny+nx-1-ny), ny+nx-1-ny); 
+    sx = dspAppend(sx, nx, dspZeros(ny+nx-1-nx), ny+nx-1-nx); 
+
+    // now here both must have the same size    
+    n_2 = ny+nx-1;
+    // padd with zeros before performing fft's
+    if(isPower2(n_2)==-1)
+    {
+        n_2 = nextPower2(n_2);   
+        sy = dspAppend(sy, ny, dspZeros(n_2-ny), n_2-ny);
+        sx = dspAppend(sx, nx, dspZeros(n_2-nx), n_2-nx);        
+    }	
+    // to frequency (fft), multitply and get the inverse (ifft) (not normalized)
+    convsxsy = dspIFftc( cMultv(dspFftc(sy, n_2), dspFftc(sx, n_2), n_2), n_2); 
+    // normalize the result, divide by the length n_2
+    vMultv( (double) 1/n_2, n_2, convsxsy);
+   
+    // clean the house
+    free(sy);
+    free(sx);    
+    return convsxsy;    
 }
+
+
+/* 
+Correlation fft Approach
+
+Corr(a,b) = iFft(Fft(a)* . Fft(b))
+* conjugate
+
+done!
+*/
+double*
+dspCorrFft(double* x, unsigned int nx, double* y, unsigned int ny)
+{ 
+   unsigned int n_2; /* power 2 size */    
+    // just to not modify the original guy 
+    double* sy = dspClone(y, ny);
+    double* sx = dspClone(x, nx);
+    double* convsxsy;
+    complex* Fsx_;
+    
+    // append with zeros until nx+ny-1
+    sy = dspAppend(sy, ny, dspZeros(ny+nx-1-ny), ny+nx-1-ny); 
+    sx = dspAppend(sx, nx, dspZeros(ny+nx-1-nx), ny+nx-1-nx); 
+
+    // now here both must have the same size    
+    n_2 = ny+nx-1;
+    // padd with zeros before performing fft's
+    if(isPower2(n_2)==-1)
+    {
+        n_2 = nextPower2(n_2);   
+        sy = dspAppend(sy, ny, dspZeros(n_2-ny), n_2-ny);
+        sx = dspAppend(sx, nx, dspZeros(n_2-nx), n_2-nx);        
+    }
+    
+    Fsx_ = dspFftc(sx, n_2);
+    cConjugate(Fsx_, n_2);
+    
+    // to frequency (fft), multitply conjugate and get the inverse (ifft) (not normalized)
+    convsxsy = dspIFftc( cMultv(Fsx_, dspFftc(sy, n_2), n_2), n_2); 
+    // normalize the result, divide by the length n_2
+    vMultv( (double) 1/n_2, n_2, convsxsy);
+   
+    // clean the house
+    free(sy);
+    free(sx);
+    free(Fsx_);
+    return convsxsy;    
+}
+
+/*
+Or this.. that doesnt work either??
+double*
+dspCorrFft(double* x, unsigned int nx, double* y, unsigned int ny)
+{ 
+    unsigned int n_2; 
+    double* sy = dspClone(y, ny);
+    double* sx = dspClone(x, nx);
+
+    vTimeInvert(sy, ny);
+    
+    return dspConvFft(sx, nx, sy, ny);
+}
+*/
+
 
 #endif /* _DSPFFT_H_ */

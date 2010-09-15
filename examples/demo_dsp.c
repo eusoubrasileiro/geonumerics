@@ -76,7 +76,8 @@ Dft_Fft_Demo(){
 /*
 Convolution games
 Demo
-Not efficient algorithm though working
+    Not efficient algorithm though working (Slide and sum)
+    Convolution with Fft nicest way
 */
 
 void
@@ -95,73 +96,75 @@ Convolution_Demo(){
     x = (double*) malloc(sizeof(double)*Nx);
     for(t=0;t<Nx;t++) scanf("%lf", &x[t]);
 
+    printf("Result Slow slide and sum approach\n");
     y = dspConv(x, Nx, h, Nh);
-
-    printf("Result\n");
+    vPrintf(stdout, y, Nx+Nh-1);    
+    
+    printf("Result Nicest approach (dspConvFft my C code)\n");
+    y = dspConvFft(x, Nx, h, Nh);
     vPrintf(stdout, y, Nx+Nh-1);
 }
 
 
 
 
-/* 
-Calculates correlation between signals
-uses convolution approach (algorithm not performance focussed)
+
+/*
+Correlation Demos
+same size signal correlation 
+Uses:
+    mathlab code approach also not very effient (time performance)
+    poor C slide invert convolution approach
+    nicest fft conv  (time inverted) approach    
 */
 
 void
 Correlation_Demo(){
     double *a, *b, *y; /* entrada, entrada, saida */
-    int Na, Nb; /* tamanho dos sinais */
+    int Na, Nb, N; /* tamanho dos sinais */
     int t; /* counters */
 
-    printf("First signal: size and data \n");
+    printf("first signal: size and data\n");
     scanf("%d", &Na);
     a = (double*) malloc(sizeof(double)*Na);
     for(t=0;t<Na;t++) scanf("%lf", &a[t]);
-
-    printf("Second signal: size and data\n");
+    
+    printf("second signal: size and data\n");
     scanf("%d", &Nb);
     b = (double*) malloc(sizeof(double)*Nb);
     for(t=0;t<Nb;t++) scanf("%lf", &b[t]);
 
-	/* uses convolution to calculate the correlation */
-    y = dspCorr(a, Na, b, Nb);
-
-    printf("Output signal \n");
-    vPrintf(stdout, y, Na+Nb-1);
-
-}
-
-/*
-Correlation Demos
-same size signal correlation 
-Uses mathlab code approach also not very effient (time performance)
-*/
-
-void
-Correlation_MatlabCode_Demo(){
-    double *a, *b, *y; /* entrada, entrada, saida */
-    int N; /* tamanho dos sinais */
-    int t; /* counters */
-
-    printf("first signal: size and data\n");
-    scanf("%d", &N);
-    a = (double*) malloc(sizeof(double)*N);
-    for(t=0;t<N;t++) scanf("%lf", &a[t]);
-
-    printf("second signal: size and data\n");
-    b = (double*) malloc(sizeof(double)*N);
-    for(t=0;t<N;t++) scanf("%lf", &b[t]);
+    /* padd with zeros so they can have the same size */
+    N = Na;
+    if(Na != Nb){ /* padd with zeros the smaller */
+        N = (Na > Nb)? Na : Nb;        
+        if(Na != N)
+            a = dspAppend(a, Na, dspZeros(N-Na), N-Na);
+        else
+            b = dspAppend(b, Nb, dspZeros(N-Nb), N-Nb);   
+    }    
+    
+    y = dspCorrx(b, a, N, -1);
 
     /* -1 force the use of size maximum as number of lags */
-    y = dspxCorr(a, b, N, -1);
-
     printf("output signal (xCorr Matlab)\n");
     vPrintf(stdout, y, 2*N-1);
 
+    /* 
+    Calculates correlation between signals
+    uses convolution approach (algorithm not performance focussed)
+    */
+
     printf("output signal (dspCorr my C code)\n");
-    y = dspCorr(a, N, b, N);
+    y = dspCorr(b, N, a, N);
+    vPrintf(stdout, y, 2*N-1);
+    
+    /* Calculates correlation between signals
+    uses Fft convolution approach 
+    */
+    
+    printf("output signal (dspCorrFft my C code)\n");
+    y = dspCorrFft(a, N, b, N);
     vPrintf(stdout, y, 2*N-1);
 }
 
@@ -172,10 +175,9 @@ Use the main to call any of the demo examples
 
 int main(){ 
    
-    Dft_Fft_Demo();
+    //Dft_Fft_Demo();
 	//Convolution_Demo();
-	//Correlation_Demo();
-	//Correlation_MatlabCode_Demo();    
+	Correlation_Demo(); 
 	printf("\n");
 	system("PAUSE");
 
