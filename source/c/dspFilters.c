@@ -47,9 +47,10 @@ dspFilterConv(double* signals, unsigned ns, double* signalf, unsigned nf)
     // put one sample 0 more, in case ns is not odd
     // ns+nf-1 end up odd (must be odd to be able to remove the central part convolution)
     // odd+odd -1 = odd
-    if(ns%2==0)
+    if(ns%2==0){
         signal = dspAppend(signal, ns, dspZeros(1), 1);
-        ns_c++;        
+        ns_c++;  
+    }      
     // padd zeros all until they have the size N+M-1
     // and convolve
     signal_filtered = dspConvFft(signal, ns_c, filter, nf);
@@ -287,20 +288,20 @@ IIR - infinite impulse response
 Monta um filtro "caixa" no tempo, dados
 1) A frequencia de corte Fc
 2) Ordem do filtro: On*2+1 = N:numero de amostras do filtro
-3) A taxa de amostragem do filtro (dt) (deve ser igual ao do sinal à ser filtrado)
+3) A taxa de amostragem do filtro (dt) (deve ser igual ao do sinal Ã  ser filtrado)
 pq senao vc tah mulptiplicando outra coisa na frequencia...
 
-A expressao para o filtro é (inversa da caixa na frequencia)
+A expressao para o filtro Ã© (inversa da caixa na frequencia)
 
 Box(t)  =  ( A sin(2 pi Fc t) ) / ( pi t )
 
 A = dt (tx de amostragem)
 
 O tamanho do filtro no tempo eh ( N dt )
-A amostragem do filtro no tempo é feito de t:
+A amostragem do filtro no tempo Ã© feito de t:
 -(N dt)/2 ate (N dt)/2
 para garantir a simetria do filtro nao modificando seu espectro
-o Box(0) no limite eh igual à
+o Box(0) no limite eh igual Ã 
 
 */
 
