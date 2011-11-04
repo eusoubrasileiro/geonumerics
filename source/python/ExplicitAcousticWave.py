@@ -188,7 +188,7 @@ def main():
         field.next_time_all()
         img.set_data(field.UTime[1])
         py.draw()
-r#        time.sleep(0.2)
+#        time.sleep(0.2)
     return field.UTime[1]
 
 
