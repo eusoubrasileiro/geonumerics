@@ -5,6 +5,17 @@
 #import matplotlib
 #matplotlib.use(backend)
 
+# TODO
+# since the velocity field
+# space interval and increment in time
+# don't change in time, the main matrix
+# (linear system) never changes
+# what changes is the independent term
+# could use for example LU decomposition
+# to increase performeance
+# instead of solving in every step
+# all the system again
+
 import pylab as py
 import numpy as np
 import time
@@ -17,33 +28,30 @@ no convergence limitations
 """
 
 class WaveField:
-    def __init__(self, Nx=100, Nz=100, Dx=0.5, Dz=0.5, Dt=0.004):
+    def __init__(self, Nx=100, Nz=100, Ds=0.5, Dt=0.004):
         """
         initialize a new wave equation field,
         for solving with finite diferences method
         Nx number of discretization in x  - ground dimension (e.g. meters)
         Nz number of discretization in z
-        Dx grid spacing in x
-        Dz grid spacing in z
+        Dx grid spacing in x = Dz grid spacing in z = Ds
         Dt time step (e.g. seconds)
         """
-        self.nx=Nx
-        self.nz=Nz
-        self.Dx=Dx
-        self.Dz=Dz
-        self.Dt=Dt
+        self.Ds = Ds
+        self.Dt = Dt
         # 2rd order on space, centered
         # due 2rd order finite diferences ... N+2 + order
-        # real dimensions are N+2 = N+4
-        self.Nx = nx+2
-        self.Nz = nz+2
+        # countour definitions will be adressed when assembling the 
+        # linear system
+        self.Nx=Nx
+        self.Nz=Nz
         # 2nd order time, backward
         # so we need plus order+2 grids
         self.Nt = 3
         
         # amplitude or strain values, for each (x, z) point
         # must follow the order nt, nz, nx
-        self.UTime = np.array(np.zeros([self.Nt, self.Nz, self.Nx]), dtype=float)
+        self.Utime = np.zeros([self.Nt, self.Nz, self.Nx])
         # nx is like collums (i)
         # nz is like lines (k)
         # nt is like 4th dimension (t)
@@ -52,7 +60,7 @@ class WaveField:
         # grid[t][k][i] = 0.0
         # velocity field for each (x, z) point
         # velocity doesnt vary with time
-        self.Gvel = np.array(np.zeros([self.Nz, self.Nx]), dtype=float)
+        self.Vel = np.zeros([self.Nz, self.Nx])
 
     def SetVel(self,Velocity):
         """
@@ -61,162 +69,180 @@ class WaveField:
         # if a matrix of velocity is passed fills it
         if(type(Velocity) is np.ndarray):
             if(np.shape(Velocity) == (self.Nz, self.Nx) ):
-                self.Gvel = Velocity
+                self.Vel = Velocity
         # if not put a constant velocity
         else:
-             self.Gvel[:][:] = Velocity
+             self.Vel[:][:] = Velocity
 
-    def initial_condition(self, velocity):
-        """
-        """
+    def gama(self, k, i):
+        return -(4.0+(self.Ds/(self.Dt*self.Vel[k][i]))**2)
 
-        self.SetVel(velocity)
-        
-        pass
 
-    def NextTime(self):
+    def LinearSystem(self):
         """
+        Assembly linear system
         """
         
         # assembly matrix of linear system
         # to solve u(t) based on u(t-1) and u(t-2)
-
-        self.mUt = np.array(np.zeros([self.Nz, self.Nx]), dtype=float)
+        # the matrix includes all future values of u
+        # in the entire grid, so size is the number of cells
+        # start with zeros that is also the countour condition u(t)=0
+        self.mUt = np.zeros([self.Nz*self.Nx, self.Nz*self.Nx])
         
 
-        # assembly matrix
-        # ignore external part of the grid, free boundary
-        # internal field inside [1, Nx-1] [1, Nz-1]
-        for i in range(1, self.Nx-1, 1):
-            for k in range(1, self.Nz-1, 1):
-                m[k-1][i-1]= ...
+        # assembly linear system, the linear system
+        # ignores external part of the grid = free boundary
+        # ln go through all the cells in the grid Ut
+        # each cell gives one equation (line)
+        for Ln in range(0, self.Nz*self.Nx, 1): 
+            # 1.0*u(x-1,z) + gama(x,z)*u(x,z) + 1.0*u(x+1,z) + 1.0*u(x,z-1) + 1.0*u(x,z+1) 
+            # turn the indices to the one of original matrix
+            i = Ln%self.Nx 
+            k = Ln/self.Nx  
 
->>> A = mat('[1 3 5; 2 5 1; 2 3 8]')
->>> b = mat('[10;8;3]')
->>> A.I*b
-matrix([[-9.28],
-        [ 5.16],
-        [ 0.76]])
->>> linalg.solve(A,b)
-array([[-9.28],
-       [ 5.16],
-       [ 0.76]])
-        
-        
-        # __Avoiding problematic positions!!!
-        # samples needed around the (i, k) position
-        # depends on the order of finite diferences 
-        # finite diference in space
-        # 3rd order = 2 samples before and after
-        maxn = self.fospace-1
-        if(i+maxn > self.nx and i-maxn<0):
-            return
-        if(k+maxn > self.nt and k-maxn<0):
-            return
+            self.mUt[Ln][Ln] = self.gama(k, i)
+
+            if(i-1 > 0): # u(x-1,z) inside grid in I
+                self.mUt[Ln][Ln-1] = 1.0
+            if(i+1 < self.Nx): # u(x+1,z) inside grid in I
+                self.mUt[Ln][Ln+1] = 1.0
+            if(k-1 > 0): #u(x,z-1)
+                self.mUt[Ln][Ln-self.Nx]= 1.0
+            if(k+1 < self.Nz): #u(x,z+1)
+                self.mUt[Ln][Ln+self.Nx]= 1.0
+
+        return self.mUt
+
+    def Independent(self):
+        """
+        Independent term
+        """
+         #independent term, where the previous times goes in
+        self.vId = np.zeros([self.Nz*self.Nx])
+        # fill the independent vector
+        for Ln in range(0, self.Nz*self.Nx, 1): 
+            # turn the indices to the one of original matrix
+            i = Ln%self.Nx 
+            k = Ln/self.Nx  
             
-        # in time
-        # As t is in [0, 1, 2] (2nd order)
-        # time t in this case is
-        # UTime[self.fotime-1] = UTime[2-1] = UTime[1]
-        u = self.UTime[1]
+            # -2 u(x,z,t-1) + u(x,z,t-2)
+            self.vId[Ln] = -2*self.Utime[1][k][i]+self.Utime[0][k][i]
+            # / (Ds/(Dt*Vel(x,z)))**2
+            self.vId[Ln] /= (self.Ds/(self.Dt*self.Vel[k][i]))**2
 
-        dx = self.Dx
-        d2u_dx2 = -(u[k][i+2]-2*u[k][i]+u[k][i-2])/12.0
-        d2u_dx2 += 4.0*(u[k][i+1]-2*u[k][i]+u[k][i-1])/3.0
-        d2u_dx2 /= dx
+        return self.vId
 
-        dz = self.Dz
-        d2u_dz2 = -(u[k+2][i]-2*u[k][i]+u[k-2][i])/12.0
-        d2u_dz2 += 4.0*(u[k+1][i]-2*u[k][i]+u[k-1][i])/3.0
-        d2u_dz2 /= dz
-
-        return d2u_dx2 + d2u_dz2;
-
-
-    def next_time(self, i, k):
+    def NextTime(self):
         """
-        Calculate the time t from:
-        a) the previous (t-2, t-1, t)
-        b) laplacian at time t
-
+        Calculate the next time
+        and update the time stack grids
         """
-        # __Avoiding problematic positions!!!
-        # samples needed around the (i, k) position
-        # depends on the order of finite diferences 
-        # finite diference in space
-        # 3rd order = 2 samples before and after
-        maxn = self.fospace-1
-        if(i+maxn > self.nx and i-maxn<0):
-            return
-        if(k+maxn > self.nt and k-maxn<0):
-            return
-
-        # As t is in [  0,   1,  2] (2nd order)
-        #            [t-2, t-1,  t]
-        u = self.UTime
-        dt = self.Dt
-
-        ut = self.laplacian(i,k)*(self.Gvel[k][i]*dt)**2
-        ut += -2*u[1][k][i]+u[0][k][i]
-
-        return ut
-
-
-
-    def next_time_all(self):
-        """
-        same as before but...
-        for the entire displacement field,
-        after the process Utime[t+1] will be
-        replaced by Utime[t+2] ... and so on
-        """
-
 
         # in time
         # As t is in [0, 1, 2] (2nd order)
-        # time t in this case is
-        # UTime[self.fotime-1] = UTime[2-1] = UTime[1]
-        u = self.UTime[2]
-
-        # ignore external part of the grid
-        # 3rd order, self.order-1
-        for i in range(self.fospace-1, self.fospace-1+self.Nx, 1):
-            for k in range(self.fospace-1, self.fospace-1+self.Nz,1):
-                u[k][i]=self.next_time(i,k)
+        # time t in this case is Utime[2]
+        
+        m = self.LinearSystem()
+        v = self.Independent()
+        result = np.linalg.solve(m, v)
+        # reshape the vector to became a matrix again
+        self.Utime[2] = np.reshape(result, (self.Nz, self.Nx))
 
         # make the update in the time stack
         # before [t-2, t-1,  t]
         # after  [t-1, t,  t+1]
-        # so t-2 receive t-1 and etc...        
+        # so t-2 receive t-1 and etc.
 
-        u = self.UTime # points to general pointer again
+        u = self.Utime 
         u[0] = u[1]
         u[1] = u[2]
         
         return
 
 
-
-def main():
-    field = wave_equation(10,10,Dt=0.1)
+def exampleOne():
+    """
+    works but due imshow palete color
+    oscilation is not very clear
+    """
+    field = WaveField(100,20,Ds=0.5,Dt=0.1)
     # 10 m/s
-    field.SetVel(0.04)
+    field.SetVel(5)
     # initial condition at t
-    # t is 2
-    field.UTime[0][5][5]=0.0
-    field.UTime[1][5][5]=1.0
+    field.Utime[0][1][1]=100.0
+    field.Utime[1][0][1]=25
+    field.Utime[1][1][0]=25
+    field.Utime[1][1][2]=25
+    field.Utime[1][2][1]=25
+
     py.ion()
-    img = py.imshow(field.UTime[1])
+    img = py.imshow(field.Utime[1])
     py.show()
 
-    for i in range(50):
-        field.next_time_all()
-        img.set_data(field.UTime[1])
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
         py.draw()
-#        time.sleep(0.2)
-    return field.UTime[1]
+        time.sleep(0.1)
+    return field.Utime[1]
 
+def exampleTwo():
+    """
+    increasing energy example    
+    infinite source of energy
+    """
+    field = WaveField(100,20,Ds=0.5,Dt=0.1)
+    # 100*0.5 = 50meters
+    # 20*0.5 = 10meters
+    # 10 m/s
+    field.SetVel(10)
+    # initial condition at t
+    # t is 2
+    field.Utime[1][1][1]=100.0
+    field.Utime[0][1][1]=0
+
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
+
+
+def exampleLayers():
+    """
+    increasing energy example    
+    infinite source of energy
+    two layers model : second layer 3x slower
+    """
+    field = WaveField(100,50,Ds=0.5,Dt=0.1)
+    # 100*0.5 = 50meters
+    # 20*0.5 = 10meters
+    # 10 m/s
+    field.SetVel(10)
+    field.Vel[25:49][:]=3
+    # initial condition at t
+    # t is 2
+    field.Utime[1][1][1]=100.0
+    field.Utime[0][1][1]=0
+
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
 
 
 if __name__ == '__main__':
-    main()
+    exampleTwo()
+
