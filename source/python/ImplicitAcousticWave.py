@@ -19,7 +19,111 @@
 import pylab as py
 import numpy as np
 import time
+import filters
 
+def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
+    """
+    Note: the wavelet must have the same sample rate 
+    than the simulation!
+    Create a wavelet (energy source) for the simulation.
+    N is number of samples for the wavelet
+    fc is the F central frequency
+    dt is the sample rate
+    Sample the Box Sinc filter simetrically around the zero
+    apply hanning window
+    """
+    print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
+    wavelet = filters.SincLowPass(N, Fc, dt)
+    wavelet = wavelet*filters.WindowHann(N)
+    #normalize [0,1]
+    return wavelet/(np.max(wavelet)-np.min(wavelet))
+    
+def exampleOne():
+    """
+    works but due imshow palete color
+    oscilation is not very clear
+    """
+    field = WaveField(100,20,Ds=0.5,Dt=0.1)
+    # 10 m/s
+    field.SetVel(5)
+    # initial condition at t
+    field.Utime[0][1][1]=100.0
+    field.Utime[1][0][1]=25
+    field.Utime[1][1][0]=25
+    field.Utime[1][1][2]=25
+    field.Utime[1][2][1]=25
+
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
+
+def exampleTwo():
+    """
+    increasing energy example    
+    infinite source of energy
+    """
+    field = WaveField(100,20,Ds=0.5,Dt=0.1)
+    # 100*0.5 = 50meters
+    # 20*0.5 = 10meters
+    # 10 m/s
+    field.SetVel(10)
+    # initial condition at t
+    # t is 2
+    field.Utime[1][1][1]=100.0
+    field.Utime[0][1][1]=0
+
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
+
+
+def exampleLayers():
+    """
+    increasing energy example    
+    infinite source of energy
+    two layers model : second layer 3x slower
+    """
+    field = WaveField(100,50,Ds=0.05,Dt=0.01)
+    # 100*0.5 = 50meters
+    # 20*0.5 = 10meters
+    # 10 m/s
+    field.SetVel(10)
+    field.Vel[25:49][:]=3
+    # initial condition at t
+    # t is 2
+    field.Utime[1][1][1]=100.0
+    field.Utime[0][1][1]=0
+
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
+
+
+if __name__ == '__main__':
+    exampleTwo()
+
+    
 __doc__ = """
 Implicit wave equation (acoustic) , finite differences
 2rd order centered in space
@@ -28,7 +132,7 @@ no convergence limitations
 """
 
 class WaveField:
-    def __init__(self, Nx=100, Nz=100, Ds=0.5, Dt=0.004):
+    def __init__(self, Nx=100, Nz=100, Ds=0.5, Dt=0.0005, Si=50, Sk=0, Wavelet=SincWavelet(dt=0.0005)):
         """
         initialize a new wave equation field,
         for solving with finite diferences method
@@ -36,7 +140,13 @@ class WaveField:
         Nz number of discretization in z
         Dx grid spacing in x = Dz grid spacing in z = Ds
         Dt time step (e.g. seconds)
+        Si, Sk = energy source position
+        wavelet = wavelet position
+        TODO: dt has always to be much smaller than the desired
+        time snapshots, and equal the wavelet sample rate
+        use a variable for that after...
         """
+        self.wavelet=Wavelet
         self.Ds = Ds
         self.Dt = Dt
         # 2rd order on space, centered
@@ -133,6 +243,12 @@ class WaveField:
 
         return self.vId
 
+    def Boundary():
+        """
+        
+        """
+    
+    
     def NextTime(self):
         """
         Calculate the next time
@@ -158,91 +274,8 @@ class WaveField:
         u[0] = u[1]
         u[1] = u[2]
         
+        # if in initial condition, set in the source position
+        # the wavelet 
+        
         return
-
-
-def exampleOne():
-    """
-    works but due imshow palete color
-    oscilation is not very clear
-    """
-    field = WaveField(100,20,Ds=0.5,Dt=0.1)
-    # 10 m/s
-    field.SetVel(5)
-    # initial condition at t
-    field.Utime[0][1][1]=100.0
-    field.Utime[1][0][1]=25
-    field.Utime[1][1][0]=25
-    field.Utime[1][1][2]=25
-    field.Utime[1][2][1]=25
-
-    py.ion()
-    img = py.imshow(field.Utime[1])
-    py.show()
-
-    for i in range(10):
-        field.NextTime()
-        img.set_data(field.Utime[1])
-        py.draw()
-        time.sleep(0.1)
-    return field.Utime[1]
-
-def exampleTwo():
-    """
-    increasing energy example    
-    infinite source of energy
-    """
-    field = WaveField(100,20,Ds=0.5,Dt=0.1)
-    # 100*0.5 = 50meters
-    # 20*0.5 = 10meters
-    # 10 m/s
-    field.SetVel(10)
-    # initial condition at t
-    # t is 2
-    field.Utime[1][1][1]=100.0
-    field.Utime[0][1][1]=0
-
-    py.ion()
-    img = py.imshow(field.Utime[1])
-    py.show()
-
-    for i in range(10):
-        field.NextTime()
-        img.set_data(field.Utime[1])
-        py.draw()
-        time.sleep(0.1)
-    return field.Utime[1]
-
-
-def exampleLayers():
-    """
-    increasing energy example    
-    infinite source of energy
-    two layers model : second layer 3x slower
-    """
-    field = WaveField(100,50,Ds=0.5,Dt=0.1)
-    # 100*0.5 = 50meters
-    # 20*0.5 = 10meters
-    # 10 m/s
-    field.SetVel(10)
-    field.Vel[25:49][:]=3
-    # initial condition at t
-    # t is 2
-    field.Utime[1][1][1]=100.0
-    field.Utime[0][1][1]=0
-
-    py.ion()
-    img = py.imshow(field.Utime[1])
-    py.show()
-
-    for i in range(10):
-        field.NextTime()
-        img.set_data(field.Utime[1])
-        py.draw()
-        time.sleep(0.1)
-    return field.Utime[1]
-
-
-if __name__ == '__main__':
-    exampleTwo()
 
