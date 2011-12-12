@@ -69,7 +69,7 @@ def SincLowPass(N, fc, dt, plot=False):
         dt*numpy.sin(2*numpy.pi*fc*x)/(numpy.pi*x); # sinc da frequencia de corte, o termo
         # # dt multiplicando serve para garantir a o espc. amplitude em 1, devido a amostragem do filtro no tempo! convolucao com deltas!!
 
-    print " Filter number of samples %f" % y.__len__()
+    print " Filter number of samples %d" % y.__len__()
 
     if(plot==True):
         pyplot.plotfftNabs_phase(y, dt);
