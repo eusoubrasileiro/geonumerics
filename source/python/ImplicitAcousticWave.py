@@ -51,7 +51,7 @@ __doc__ = """ Implicit wave equation (acoustic) , finite differences
 
 class WaveField:
     def __init__(self, Nx=100, Nz=50, Ds=0.5, Dt=0.001, 
-                 Sx=2, Sz=2, Wavelet=SincWavelet(Fc=40,dt=0.001), 
+                 Sx=1, Sz=1, Wavelet=[], Fw=40,
                  Snapshots=1, MaxIter=1000):
         """
         initialize a new wave equation field,
@@ -69,7 +69,9 @@ class WaveField:
         time snapshots, and equal the wavelet sample rate
         use a variable for that after...
         """
-        self.Wavelet=10*Wavelet # 10 power
+        if(Wavelet == []):
+            self.Wavelet=10*SincWavelet(11,Fc=Fw,dt=Dt) # 10 power
+
         self.Ds = Ds
         self.Dt = Dt
         self.Snapshots = Snapshots
@@ -99,7 +101,9 @@ class WaveField:
         # velocity field for each (x, z) point
         # velocity doesnt vary with time
         self.Vel = np.zeros([self.Nz, self.Nx])
-        self.SetVel(2000)
+        # linear system not solved yet
+        self.Solved = False
+
 
     def SetVel(self, Velocity):
         """
@@ -171,6 +175,49 @@ class WaveField:
             self.vId[Ln] /= (self.Ds/(self.Dt*self.Vel[k][i]))**2
 
         return self.vId
+
+    def SolveSystem(self):
+        """
+        Find the inverse of the liner system matrix
+        once found each time step is just a matrix multiplication
+        """
+        self.LinearSystem()
+        self.mUtInv = np.linalg.inv(self.mUt)
+        self.Solved = True
+
+        return self.mUtInv
+        
+        
+    def SolveNextTime(self):
+        """
+        Calculate the next time (matrix multiplication)
+        and update the time stack grids
+        """
+
+        if(self.Solved == False):
+            self.SolveSystem()
+
+        # in time
+        # As t is in [0, 1, 2] (2nd order)
+        # time t in this case is Utime[2]
+
+        v = self.Independent()
+
+        result = self.mUtInv.dot(v)
+        # reshape the vector to became a matrix again
+        self.Utime[2] = np.reshape(result, (self.Nz, self.Nx))
+
+        # make the update in the time stack
+        # before [t-2, t-1,  t]
+        # after  [t-1, t,  t+1]
+        # so t-2 receive t-1 and etc.
+
+        u = self.Utime 
+        u[0] = u[1]
+        u[1] = u[2]
+        
+      
+        return
     
 
     def SourceBoundaryCondition(self, it):
@@ -180,26 +227,25 @@ class WaveField:
         ( it ) At the given time step. Set t and t-1. (2 order finite diferences)
         if the iteration time is greater than the wavelet time
         sets the source position as 0
+        TODO:
+        verify if its really working
         """
         Wavelet=self.Wavelet
         Sx=self.Sx
         Sz=self.Sz
         
-        if(it - 1 >= 0):
-            if(it - 1 > np.size(Wavelet) ):
-                self.Utime[0][Sz][Sx] = 0
-                return
-            else:
-                self.Utime[0][Sz][Sx] = Wavelet[it-1]
+        if( it - 1 >= np.size(Wavelet)):
+            self.Utime[0][Sz][Sx] = self.Utime[1][Sz][Sx] = 0
+            return
+
+        if(it - 1 < np.size(Wavelet)):
+            self.Utime[0][Sz][Sx] = Wavelet[it-1]
                 
-        if(it > np.size(Wavelet)):
-            self.Utime[1][Sz][Sx] = 0
-        else:
+        if(it < np.size(Wavelet)):
             self.Utime[1][Sz][Sx] = Wavelet[it]
-        
-        return            
-    
-    
+
+        return
+
     def Loop(self, MakeGif=True):
         """
         Loop through all time steps until (MaxIter)
@@ -230,33 +276,30 @@ class WaveField:
             os.system("rm IfE*.png")
             
         return
-        
-    def SolveNextTime(self):
-        """
-        Calculate the next time
-        and update the time stack grids
-        """
 
-        # in time
-        # As t is in [0, 1, 2] (2nd order)
-        # time t in this case is Utime[2]
-        
-        m = self.LinearSystem()
-        v = self.Independent()
-        result = np.linalg.solve(m, v)
-        # reshape the vector to became a matrix again
-        self.Utime[2] = np.reshape(result, (self.Nz, self.Nx))
 
-        # make the update in the time stack
-        # before [t-2, t-1,  t]
-        # after  [t-1, t,  t+1]
-        # so t-2 receive t-1 and etc.
 
-        u = self.Utime 
-        u[0] = u[1]
-        u[1] = u[2]
-        
-      
-        return
+def exampleLayers():
+    """
+    increasing energy example    
+    infinite source of energy
+    two layers model : second layer 3x slower
+    """
+    fd = WaveField(100,50,0.5,0.05,Fw=2)
+    # 100*0.5 = 50meters
+    # 20*0.5 = 10meters
+    # 10 m/s
+    fd.SetVel(10)
+    fd.Vel[25:49][:]=3
+    # initial condition at t
+    # t is 2
+#    field.Utime[1][1][1]=100.0
+#    field.Utime[0][1][1]=0
 
+    for i in range(0,20,1):
+        fd.SourceBoundaryCondition(i+1)
+        fd.SolveNextTime()
+        py.imshow(fd.Utime[1])
+
+    return fd.Utime[1]
 
