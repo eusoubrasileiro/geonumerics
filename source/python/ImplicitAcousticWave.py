@@ -5,22 +5,14 @@
 #import matplotlib
 #matplotlib.use(backend)
 
-# TODO
-# since the velocity field
-# space interval and increment in time
-# don't change in time, the main matrix
-# (linear system) never changes
-# what changes is the independent term
-# could use for example LU decomposition
-# to increase performeance
-# instead of solving in every step
-# all the system again
-
 import pylab as py
 import numpy as np
 import time
 import os
 import filters
+# since the matrix is simetric Hermitian and positive definite
+# we can use cholesky to 
+import scipy.linalg as ln
 
 
 def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
@@ -41,8 +33,13 @@ def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
     return wavelet/(np.max(wavelet)-np.min(wavelet))
 
 
+def RickerWavelet(N=101, sg=0.5, dt=0.05):
+    t = np.arange(-dt*(N-1)/2,(dt*(N-1)/2)+dt, dt)
+    wv = 2/((3*sg)**0.5*np.pi**0.25)
+    wv *= (1 - (t/sg)**2)*np.exp(-t**2/(2*sg**2))
+    return wv
 
-    
+
 __doc__ = """ Implicit wave equation (acoustic) , finite differences
               2 order centered in space
               2 order backward in time
@@ -70,7 +67,7 @@ class WaveField:
         use a variable for that after...
         """
         if(Wavelet == []):
-            self.Wavelet=10*SincWavelet(11,Fc=Fw,dt=Dt) # 10 power
+            self.Wavelet=10*RickerWavelet(101,sg=Dt/10.0,dt=Dt) # 10 power
 
         self.Ds = Ds
         self.Dt = Dt
@@ -176,21 +173,22 @@ class WaveField:
 
         return self.vId
 
+
     def SolveSystem(self):
         """
-        Find the inverse of the liner system matrix
-        once found each time step is just a matrix multiplication
+        Find ... factorization of the matrix
+        once found each time step is appying a recipe
         """
         self.LinearSystem()
-        self.mUtInv = np.linalg.inv(self.mUt)
+        self.mUtfactor = ln.lu_factor(self.mUt)
         self.Solved = True
 
-        return self.mUtInv
+        return self.mUtfactor
         
         
     def SolveNextTime(self):
         """
-        Calculate the next time (matrix multiplication)
+        Calculate the next time (factorization)
         and update the time stack grids
         """
 
@@ -203,7 +201,7 @@ class WaveField:
 
         v = self.Independent()
 
-        result = self.mUtInv.dot(v)
+        result = ln.lu_solve(self.mUtfactor, v)
         # reshape the vector to became a matrix again
         self.Utime[2] = np.reshape(result, (self.Nz, self.Nx))
 
@@ -246,35 +244,21 @@ class WaveField:
 
         return
 
-    def Loop(self, MakeGif=True):
+    def Loop(self, Save=True):
         """
         Loop through all time steps until (MaxIter)
-        taking picture snapshots at every (Snapshots)
-        MakeGif : create a Gif animation with all the snapshots
+        saving the matrix snapshots at every (Snapshots)
         """
         MaxIter=self.MaxIter 
-        Snapshots=self.Snapshots 
+        Snapshots=self.Snapshots         
         
-        py.ion()
-        img = py.imshow(self.Utime[1])
-        py.show()
-         
         # for little problems with the wavelet put initialize as 1
         for i in range(1, MaxIter, 1):
             self.SourceBoundaryCondition(i)
             self.SolveNextTime()
             if(i%Snapshots==0): # every n'th Snapshots
-                img.set_data(self.Utime[1])
-                py.draw()
-                time.sleep(0.1)
-                if(MakeGif):
-                    py.savefig("IfE"+str(i))
-                
-        if(MakeGif):
-            #create gif animation
-            os.system("convert -delay 50 -dispose None IfE*.png -loop 0 InfEn.gif")
-            os.system("rm IfE*.png")
-            
+                np.save("IfE"+str(i), self.mUt[1])
+
         return
 
 
@@ -285,7 +269,8 @@ def exampleLayers():
     infinite source of energy
     two layers model : second layer 3x slower
     """
-    fd = WaveField(100,50,0.5,0.05,Fw=2)
+    fd = WaveField(100,50,0.5,0.005,Fw=10)
+    fd.MaxIter=20
     # 100*0.5 = 50meters
     # 20*0.5 = 10meters
     # 10 m/s
@@ -296,10 +281,18 @@ def exampleLayers():
 #    field.Utime[1][1][1]=100.0
 #    field.Utime[0][1][1]=0
 
-    for i in range(0,20,1):
-        fd.SourceBoundaryCondition(i+1)
-        fd.SolveNextTime()
-        py.imshow(fd.Utime[1])
+    return fd.Loop()
 
-    return fd.Utime[1]
+def Plot(n=10):
+    py.ion()
+    ti = np.load('IfE'+str(1)+'.npy')
+    img = py.imshow(np.reshape(ti, (50,100)))
 
+    for i in range(2,10):
+        ti = np.load('IfE'+str(i)+'.npy')
+        py.imshow(np.reshape(ti, (50,100)))
+        py.draw()
+        time.sleep(0.1)
+
+if __name__ == '__main__':
+    exampleLayers()
