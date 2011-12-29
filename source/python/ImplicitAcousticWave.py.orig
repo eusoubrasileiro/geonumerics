@@ -5,77 +5,41 @@
 #import matplotlib
 #matplotlib.use(backend)
 
+# TODO
+# since the velocity field
+# space interval and increment in time
+# don't change in time, the main matrix
+# (linear system) never changes
+# what changes is the independent term
+# could use for example LU decomposition
+# to increase performeance
+# instead of solving in every step
+# all the system again
+
 import pylab as py
 import numpy as np
 import time
 import os
-import filters
-# since the matrix is simetric Hermitian and positive definite
-# we can use cholesky to 
-import scipy.linalg as ln
 
-
-def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
-    """
-    Note: the wavelet must have the same sample rate 
-    than the simulation!
-    Create a wavelet (energy source) for the simulation.
-    N is number of samples for the wavelet
-    fc is the F central frequency
-    dt is the sample rate
-    Sample the Box Sinc filter simetrically around the zero
-    apply hanning window
-    """
-    print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
-    wavelet = filters.SincLowPass(N, Fc, dt)
-    #wavelet = wavelet*filters.WindowHann(N)
-    #normalize [0,1]
-    return wavelet/(np.max(wavelet)-np.min(wavelet))
-
-
-def RickerWavelet(N=101, sg=0.5, dt=0.05):
-    t = np.arange(-dt*(N-1)/2,(dt*(N-1)/2)+dt, dt)
-    wv = 2/((3*sg)**0.5*np.pi**0.25)
-    wv *= (1 - (t/sg)**2)*np.exp(-t**2/(2*sg**2))
-    return wv
-
-
-__doc__ = """ Implicit wave equation (acoustic) , finite differences
-              2 order centered in space
-              2 order backward in time
-              no convergence limitations??
-          """
+__doc__ = """
+Implicit wave equation (acoustic) , finite differences
+2rd order centered in space
+2 order backward in time
+no convergence limitations
+"""
 
 class WaveField:
-    def __init__(self, Nx=100, Nz=50, Ds=0.5, Dt=0.001, 
-                 Sx=1, Sz=1, Wavelet=[], Fw=40,
-                 Snapshots=1, MaxIter=1000):
+    def __init__(self, Nx=100, Nz=100, Ds=0.5, Dt=0.004):
         """
         initialize a new wave equation field,
         for solving with finite diferences method
         Nx number of discretization in x  - ground dimension (e.g. meters)
         Nz number of discretization in z
-        Ds = Dx = Dz grid spacing in x = grid spacing in z
-        Dt time step (e.g. seconds) 
-        (TODO: calculate criteria for convergence!!)
-        (Sx, Sz) = energy source position
-        Wavelet = wavelet position
-        Snapshots = number of iterations between intervals
-        TotalIter = number total of iterations
-        TODO: dt has always to be much smaller than the desired
-        time snapshots, and equal the wavelet sample rate
-        use a variable for that after...
+        Dx grid spacing in x = Dz grid spacing in z = Ds
+        Dt time step (e.g. seconds)
         """
-        if(Wavelet == []):
-            self.Wavelet=10*RickerWavelet(101,sg=Dt/10.0,dt=Dt) # 10 power
-
         self.Ds = Ds
         self.Dt = Dt
-        self.Snapshots = Snapshots
-        self.MaxIter = MaxIter
-        self.Sx = Sx
-        self.Sz = Sz
-        
         # 2rd order on space, centered
         # due 2rd order finite diferences ... N+2 + order
         # countour definitions will be adressed when assembling the 
@@ -98,11 +62,8 @@ class WaveField:
         # velocity field for each (x, z) point
         # velocity doesnt vary with time
         self.Vel = np.zeros([self.Nz, self.Nx])
-        # linear system not solved yet
-        self.Solved = False
 
-
-    def SetVel(self, Velocity):
+    def SetVel(self,Velocity):
         """
         sets the velocy field
         """
@@ -173,35 +134,19 @@ class WaveField:
 
         return self.vId
 
-
-    def SolveSystem(self):
+    def NextTime(self):
         """
-        Find ... factorization of the matrix
-        once found each time step is appying a recipe
-        """
-        self.LinearSystem()
-        self.mUtfactor = ln.lu_factor(self.mUt)
-        self.Solved = True
-
-        return self.mUtfactor
-        
-        
-    def SolveNextTime(self):
-        """
-        Calculate the next time (factorization)
+        Calculate the next time
         and update the time stack grids
         """
-
-        if(self.Solved == False):
-            self.SolveSystem()
 
         # in time
         # As t is in [0, 1, 2] (2nd order)
         # time t in this case is Utime[2]
-
+        
+        m = self.LinearSystem()
         v = self.Independent()
-
-        result = ln.lu_solve(self.mUtfactor, v)
+        result = np.linalg.solve(m, v)
         # reshape the vector to became a matrix again
         self.Utime[2] = np.reshape(result, (self.Nz, self.Nx))
 
@@ -214,53 +159,60 @@ class WaveField:
         u[0] = u[1]
         u[1] = u[2]
         
-      
-        return
-    
-
-    def SourceBoundaryCondition(self, it):
-        """
-        ( wavelet ) Set the boundary condition at the pertubation source position.
-        ( sx, sz ) source position
-        ( it ) At the given time step. Set t and t-1. (2 order finite diferences)
-        if the iteration time is greater than the wavelet time
-        sets the source position as 0
-        TODO:
-        verify if its really working
-        """
-        Wavelet=self.Wavelet
-        Sx=self.Sx
-        Sz=self.Sz
-        
-        if( it - 1 >= np.size(Wavelet)):
-            self.Utime[0][Sz][Sx] = self.Utime[1][Sz][Sx] = 0
-            return
-
-        if(it - 1 < np.size(Wavelet)):
-            self.Utime[0][Sz][Sx] = Wavelet[it-1]
-                
-        if(it < np.size(Wavelet)):
-            self.Utime[1][Sz][Sx] = Wavelet[it]
-
         return
 
-    def Loop(self, Save=True):
-        """
-        Loop through all time steps until (MaxIter)
-        saving the matrix snapshots at every (Snapshots)
-        """
-        MaxIter=self.MaxIter 
-        Snapshots=self.Snapshots         
-        
-        # for little problems with the wavelet put initialize as 1
-        for i in range(1, MaxIter, 1):
-            self.SourceBoundaryCondition(i)
-            self.SolveNextTime()
-            if(i%Snapshots==0): # every n'th Snapshots
-                np.save("IfE"+str(i), self.mUt[1])
 
-        return
+def exampleOne():
+    """
+    works but due imshow palete color
+    oscilation is not very clear
+    """
+    field = WaveField(100,20,Ds=0.5,Dt=0.1)
+    # 10 m/s
+    field.SetVel(5)
+    # initial condition at t
+    field.Utime[0][1][1]=100.0
+    field.Utime[1][0][1]=25
+    field.Utime[1][1][0]=25
+    field.Utime[1][1][2]=25
+    field.Utime[1][2][1]=25
 
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
+
+def exampleTwo():
+    """
+    increasing energy example    
+    infinite source of energy
+    """
+    field = WaveField(100,20,Ds=0.5,Dt=0.1)
+    # 100*0.5 = 50meters
+    # 20*0.5 = 10meters
+    # 10 m/s
+    field.SetVel(10)
+    # initial condition at t
+    # t is 2
+    field.Utime[1][1][1]=100.0
+    field.Utime[0][1][1]=0
+
+    py.ion()
+    img = py.imshow(field.Utime[1])
+    py.show()
+
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
+        py.draw()
+        time.sleep(0.1)
+    return field.Utime[1]
 
 
 def exampleLayers():
@@ -269,30 +221,34 @@ def exampleLayers():
     infinite source of energy
     two layers model : second layer 3x slower
     """
-    fd = WaveField(100,50,0.5,0.005,Fw=10)
-    fd.MaxIter=20
+    field = WaveField(100,50,Ds=0.5,Dt=0.1)
     # 100*0.5 = 50meters
     # 20*0.5 = 10meters
     # 10 m/s
-    fd.SetVel(10)
-    fd.Vel[25:49][:]=3
+    field.SetVel(10)
+    field.Vel[25:49][:]=3
     # initial condition at t
     # t is 2
-#    field.Utime[1][1][1]=100.0
-#    field.Utime[0][1][1]=0
+    field.Utime[1][1][1]=100.0
+    field.Utime[0][1][1]=0
 
-    return fd.Loop()
-
-def Plot(n=10):
     py.ion()
-    ti = np.load('IfE'+str(1)+'.npy')
-    img = py.imshow(np.reshape(ti, (50,100)))
+    img = py.imshow(field.Utime[1])
+    py.show()
 
-    for i in range(2,10):
-        ti = np.load('IfE'+str(i)+'.npy')
-        py.imshow(np.reshape(ti, (50,100)))
+    for i in range(10):
+        field.NextTime()
+        img.set_data(field.Utime[1])
         py.draw()
         time.sleep(0.1)
+        py.savefig("IfE"+i.__str__())
+
+    #create gif animation
+    os.system("convert -delay 50 -dispose None IfE*.png -loop 0 InfEn.gif")
+    os.system("rm IfE*.png")
+    return field.Utime[1]
+
 
 if __name__ == '__main__':
-    exampleLayers()
+    exampleTwo()
+
