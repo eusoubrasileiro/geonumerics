@@ -22,8 +22,8 @@ def LinearSin(Fc=40.0, dt=None, plot=False):
 class Wave1DField:
     """
     Explicit 1D wave equation
-    2 order centered in space
-    4 order backward in time
+    4 order centered in space
+    4 order backward in time Lax-Wendroff
     """
 
     def __init__(self,
@@ -44,6 +44,7 @@ class Wave1DField:
         TODO: dt has always to be much smaller than the desired
         time snapshots, and equal the wavelet sample rate
         use a variable for that after...
+        Also use a better first aproximation time to avoid bad wavelet formation
         """
         self.N = N
         self.Ds = Ds
@@ -79,6 +80,12 @@ class Wave1DField:
         # if not put a constant velocity
         else:
             self.Vel[:][:] = Velocity
+            
+    def _CalculateDt(self):
+        """
+        Calculate time step based on convergence criteria
+        Look at Jing-Bo Chen Geophysics
+        """
 
     def _Source(self):
         """
@@ -118,23 +125,30 @@ class Wave1DField:
         for j in range(self.N):
             
             # sequence
-            # 0, 1, 2 => j-1, j, j+1
+            # 0, 1, 2, 3, 4 => j-2, j-1, j, j+1, j+2
             # 0, 1, 2 => n-1, n, n+1
-            ej1n0 = self.Utime[0][j] # n-1
+            ej2n0 = self.Utime[0][j] # n-1
             
             ej0n1=0.0
-            ej1n1 = self.Utime[1][j] # n
-            ej2n1=0.0
+            ej1n1=0.0
+            ej2n1 = self.Utime[1][j] # n
+            ej3n1=0.0
+            ej4n1=0.0
             
-            ej1n2 = 0.0 # n+1
+            ej2n2 = 0.0 # n+1
             
             if j-1 > 0: 
-                ej0n1 = self.Utime[1][j-1]
+                ej1n1 = self.Utime[1][j-1]
             if j+1 < self.N: 
-                ej2n1 = self.Utime[1][j+1]
-                
-            ej1n2 = (ej0n1-2*ej1n1+ej2n1)*(self.Dt*self.Vel[j]/self.Ds)**2
-            ej1n2 += 2*ej1n1-ej1n0
+                ej3n1 = self.Utime[1][j+1]
+            if j-2 > 0: 
+                ej0n1 = self.Utime[1][j-2]
+            if j+2 < self.N: 
+                ej4n1 = self.Utime[1][j+2]
+            
+            ej2n2 = (-ej0n1+16*ej1n1-30*ej2n1+16*ej3n1-ej4n1)
+            ej2n2 *= (self.Dt*self.Vel[j])**2/(12*self.Ds**4)
+            ej2n2 += 2*ej2n1-ej2n0
             
             
             # Lax-Wendroff 4 order time correction Hjn
@@ -149,9 +163,11 @@ class Wave1DField:
             ej3n = 0.0
             ej4n = 0.0
             # constant velocity outside boundaries
+            vj0n = self.Vel[j]
             vj1n = self.Vel[j]
             vj2n = self.Vel[j]
             vj3n = self.Vel[j]
+            vj4n = self.Vel[j]
             
             if j-1 > 0: 
                 ej1n = self.Utime[1][j-1]
@@ -161,13 +177,16 @@ class Wave1DField:
                 vj3n = self.Vel[j+1]
             if j-2 > 0:
                 ej0n = self.Utime[1][j-2]
+                vj0n = self.Vel[j-2]
             if j+2 < self.N:
                 ej4n = self.Utime[1][j+2]
+                vj4n = self.Vel[j+2]
             
-            Hjn = 2*vj2n*(vj1n-2*vj2n+vj3n)*(ej1n-2*ej2n+ej3n)/(self.Ds**4)
+            Hjn = 2*vj2n*(-vj0n+16*vj1n-30*vj2n+16*vj3n-vj4n)/(144*self.Ds**8)
+            Hjn *= (-ej0n+16*ej1n-30*ej2n+16*ej3n-ej4n)
             Hjn += (vj2n**2)*(ej0n-4*ej1n+6*ej2n-4*ej3n+ej4n)/(self.Ds**4)
-            Hjn *= (self.Dt**2)/12
-            self.Utime[2][j] =  ej1n2 - (Hjn*self.Dt**2)
+            Hjn *= -(self.Dt**4)/12
+            self.Utime[2][j] =  ej2n2 + Hjn
         
         # update stack times
         self.Utime[0] = self.Utime[1]
