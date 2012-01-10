@@ -5,12 +5,13 @@
 #e depois
 # pyplot.plotfile('sq.txt', 'b^-')
 
-import numpy, sys, os
-import time
-import scriptutil # script to manage files etc.. (fonte google)
+import numpy
 import pylab
 
-__doc__ = "These are fuctions to helping on plotting/loading you can also use the load, save from pylab"
+"""
+These are fuctions to helping on plotting/loading 
+you can also use the load, save from pylab
+"""
 
 def showfile(filename, opt=None, lwidth=1.5):
     """
@@ -190,13 +191,13 @@ def plotfftcompare(Sinal, Sinal_Filtered, dt):
     plotfftphase(Sinal_Filtered, dt);
     plotfftphase(Sinal, dt);
 
-def plotconvprocess(origsignal, paddedsignal, filter, resconv, resconvcutted, dt):
+def plotconvprocess(origsignal, paddedsignal, filterKernel, resconv, resconvcutted, dt):
     """
     Plot the convolution process, time & frequency
     parameters:
     original signal
     padded signal before effective convolution
-    filter kernel
+    filterKernel kernel
     signal after convolution
     signal after convolution samples clipped to maintain the original size
     dt = sample rate of all guys
@@ -216,10 +217,10 @@ def plotconvprocess(origsignal, paddedsignal, filter, resconv, resconvcutted, dt
     plotfftabs(paddedsignal, dt)
     ########################
     pylab.subplot(5, 2, 5)
-    pylab.plot(filter) # FILTRO TEMPO
-    pylab.ylabel("filter")
+    pylab.plot(filterKernel) # FILTRO TEMPO
+    pylab.ylabel("filterKernel")
     pylab.subplot(5, 2, 6) # FILTRO  MODULO Frequencia
-    plotfftabs(filter, dt)
+    plotfftabs(filterKernel, dt)
     ########################
     pylab.subplot(5, 2, 7);
     pylab.plot(resconv) # RESULTADO CONVOLUTION  TEMPO
