@@ -1,0 +1,5 @@
+TODO
+Organize python files as python modules.
+1) Make the \\python\\ path as the main library path.
+2) Include __init__.py files for each modules
+3) Include test.py for each module too

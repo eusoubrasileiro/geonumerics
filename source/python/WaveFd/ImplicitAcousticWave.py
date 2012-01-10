@@ -5,11 +5,9 @@
 #import matplotlib
 #matplotlib.use(backend)
 
-import pylab as py
+
 import numpy as np
-import time
-import os
-import filters
+from Filters import SincLowPass
 # since the matrix is simetric Hermitian and positive definite
 # we can use cholesky to 
 import scipy.linalg as ln
@@ -27,7 +25,7 @@ def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
     apply hanning window
     """
     print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
-    wavelet = filters.SincLowPass(N, Fc, dt)
+    wavelet = SincLowPass(N, Fc, dt)
     #wavelet = wavelet*filters.WindowHann(N)
     #normalize [0,1]
     return wavelet/(np.max(wavelet)-np.min(wavelet))
@@ -40,16 +38,25 @@ def RickerWavelet(N=101, sg=0.5, dt=0.05):
     return wv
 
 
-__doc__ = """ Implicit wave equation (acoustic) , finite differences
-              2 order centered in space
-              2 order backward in time
-              no convergence limitations??
-          """
-
 class WaveField:
-    def __init__(self, Nx=100, Nz=50, Ds=0.5, Dt=0.001, 
-                 Sx=1, Sz=1, Wavelet=[], Fw=40,
-                 Snapshots=1, MaxIter=1000):
+    """
+    Implicit wave equation (acoustic) , finite differences
+    2 order centered in space
+    2 order backward in time
+    no convergence limitations??
+    """
+
+    def __init__(self,
+                 Nx=100,
+                 Nz=50,
+                 Ds=0.5,
+                 Dt=0.001,
+                 Sx=1,
+                 Sz=1,
+                 Wavelet=None,
+                 Fw=40,
+                 Snapshots=1,
+                 MaxIter=1000):
         """
         initialize a new wave equation field,
         for solving with finite diferences method
@@ -66,7 +73,7 @@ class WaveField:
         time snapshots, and equal the wavelet sample rate
         use a variable for that after...
         """
-        if(Wavelet == []):
+        if(Wavelet == None):
             self.Wavelet=10*RickerWavelet(101,sg=Dt/10.0,dt=Dt) # 10 power
 
         self.Ds = Ds
@@ -112,7 +119,7 @@ class WaveField:
                 self.Vel = Velocity
         # if not put a constant velocity
         else:
-             self.Vel[:][:] = Velocity
+            self.Vel[:][:] = Velocity
 
     def gama(self, k, i):
         return -(4.0+(self.Ds/(self.Dt*self.Vel[k][i]))**2)
@@ -158,7 +165,7 @@ class WaveField:
         """
         Independent term
         """
-         #independent term, where the previous times goes in
+        #independent term, where the previous times goes in
         self.vId = np.zeros([self.Nz*self.Nx])
         # fill the independent vector
         for Ln in range(0, self.Nz*self.Nx, 1): 
@@ -260,42 +267,6 @@ class WaveField:
             self.SourceBoundaryCondition(i)
             self.SolveNextTime()
             if(i%Snapshots==0): # every n'th Snapshots
-                np.save("IfE"+str(i), self.mUt[1])
+                np.save("IfE"+str(i), self.Utime[1])
 
         return
-
-
-
-def exampleLayers():
-    """
-    increasing energy example    
-    infinite source of energy
-    two layers model : second layer 3x slower
-    """
-    fd = WaveField(100,50,0.5,0.005,Fw=10)
-    fd.MaxIter=20
-    # 100*0.5 = 50meters
-    # 20*0.5 = 10meters
-    # 10 m/s
-    fd.SetVel(10)
-    fd.Vel[25:49][:]=3
-    # initial condition at t
-    # t is 2
-#    field.Utime[1][1][1]=100.0
-#    field.Utime[0][1][1]=0
-
-    return fd.Loop()
-
-def Plot(n=10):
-    py.ion()
-    ti = np.load('IfE'+str(1)+'.npy')
-    img = py.imshow(np.reshape(ti, (50,100)))
-
-    for i in range(2,10):
-        ti = np.load('IfE'+str(i)+'.npy')
-        py.imshow(np.reshape(ti, (50,100)))
-        py.draw()
-        time.sleep(0.1)
-
-if __name__ == '__main__':
-    exampleLayers()

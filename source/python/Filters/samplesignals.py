@@ -1,19 +1,6 @@
-#-------------------------------------------------------------------------------
-# Name:        Sample Signals
-# Purpose:     some sample signals for testing porpouses
-#
-# Author:      andre
-#
-# Created:     21/08/2010
-# Copyright:   (c) andre 2010
-#-------------------------------------------------------------------------------
-#!/usr/bin/env python
-
-import filters
 import pyplot
 import numpy
 from numpy.random import rand
-import pylab
 
 
 def Periodic(N=200, dt=0.05, plot=False):
@@ -98,18 +85,3 @@ def NonLinear(N=200, dt=0.005, fc=50, ct=500, plot=False):
 
     return y
 
-def main():
-    """
-
-    run all sample signals
-
-    """
-    pylab.figure();
-    Periodic(plot=True);
-    pylab.figure();
-    Periodic_Noise(plot=True);
-    pylab.figure();
-    NonLinear(plot=True);
-
-if __name__ == '__main__':
-    main()
