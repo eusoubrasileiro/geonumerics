@@ -6,7 +6,6 @@ Created on Dec 29, 2011
 import unittest
 import pylab as py
 import numpy as np
-from WaveFd import WaveField
 import time
 
 
