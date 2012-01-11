@@ -16,8 +16,8 @@ def LinearSin(Fc=40.0, dt=None, plot=False):
     print "total wavelet time : %.1f miliseconds" % (dt*np.size(wavelet)*1000)
     wavelet = wavelet/(np.max(wavelet)-np.min(wavelet))
     
-    # invert the function so, it starts with a small perturbation
-    return wavelet[::-1]
+    # invert the function so, it starts with a small perturbation [::-1]
+    return wavelet
 
 class Wave1DField:
     """
@@ -196,7 +196,7 @@ class Wave1DField:
         
         return self
 
-    def Loop(self, Save=True):
+    def Loop(self, Save=True, name='Exp1D'):
         """
         Loop through all time steps until (Maxtime)
         saving the matrix snapshots at every (Snapshots)
@@ -209,12 +209,22 @@ class Wave1DField:
             return
         #raise        
         self.t = 1
-        for t in range(int(self.Maxtime/self.Dt)):
+        mt = int(self.Maxtime/self.Dt)
+        nrc = int(self.Dtr/self.Dt) # snaphots interval at every Dtr seconds
+        movie = np.zeros((mt/nrc, self.N)) # animation matrix at every nrc steps
+        
+        j=0 # counter for the animation
+        
+        for t in range(mt):
             self._Source()
             self.Next()
-            if ( t*self.Dt%self.Dtr == 0 ): # every Dtr seconds
-                np.save("IfE"+str(t), self.Utime[1])
-
-        return
+            if ( t%nrc == 0 ):
+                movie[j] = self.Utime[1]
+                j+=1
+        
+        if(Save==True):
+            np.save(name, movie)
+            
+        return movie
     
     
