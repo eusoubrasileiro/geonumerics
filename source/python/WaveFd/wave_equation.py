@@ -170,7 +170,7 @@ class wave_equation:
         
         return
 
-    def initial_condition():
+    def initial_condition(self):
         pass
 
 
