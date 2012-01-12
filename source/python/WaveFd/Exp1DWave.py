@@ -31,7 +31,7 @@ class Wave1DField:
                  Ds=0.5,
                  Dtr=0.04,
                  Si=50,
-                 Maxtime=2.0):
+                 Maxtime=1.0):
         """
         initialize a new wave equation field,
         for solving with finite diferences method
@@ -100,9 +100,10 @@ class Wave1DField:
         Wavelet=self.Wavelet
         Si=self.Si        
         
-        if( t - 1 >= np.size(Wavelet)):
-            self.Utime[0][Si] = self.Utime[1][Si] = 0
-            return
+        #if( t - 1 >= np.size(Wavelet)):
+            # we should not force the solution after final time of wavelet
+            # self.Utime[0][Si] = self.Utime[1][Si] = 0
+            # return
 
         if(t - 1 < np.size(Wavelet)):
             self.Utime[0][Si] = Wavelet[t-1]
@@ -196,7 +197,7 @@ class Wave1DField:
         
         return self
 
-    def Loop(self, Save=True, name='Exp1D'):
+    def Loop(self, Save=False, name='Exp1D'):
         """
         Loop through all time steps until (Maxtime)
         saving the matrix snapshots at every (Snapshots)
