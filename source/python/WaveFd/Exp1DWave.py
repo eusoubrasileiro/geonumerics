@@ -125,69 +125,66 @@ class Wave1DField:
         
         for j in range(self.N):
             
-            # sequence
-            # 0, 1, 2, 3, 4 => j-2, j-1, j, j+1, j+2
+            # sequence 4 order space, 4 order time
+            # 0, 1, 2, 3, 4, 5, 6 => j-3, j-2, j-1, j, j+1, j+2, j+3
             # 0, 1, 2 => n-1, n, n+1
-            ej2n0 = self.Utime[0][j] # n-1
+            ej3n0 = self.Utime[0][j] # n-1
             
-            ej0n1=0.0
-            ej1n1=0.0
-            ej2n1 = self.Utime[1][j] # n
-            ej3n1=0.0
-            ej4n1=0.0
+            # just for convention n means n1 = time n
+            ej0n=0.0
+            ej1n=0.0
+            ej2n=0.0
+            ej3n=self.Utime[1][j] # n
+            ej4n=0.0
+            ej5n=0.0
+            ej6n=0.0
             
-            ej2n2 = 0.0 # n+1
+            ej3n2 = 0.0 # n+1
             
-            if j-1 > 0: 
-                ej1n1 = self.Utime[1][j-1]
-            if j+1 < self.N: 
-                ej3n1 = self.Utime[1][j+1]
-            if j-2 > 0: 
-                ej0n1 = self.Utime[1][j-2]
-            if j+2 < self.N: 
-                ej4n1 = self.Utime[1][j+2]
-            
-            ej2n2 = (-ej0n1+16*ej1n1-30*ej2n1+16*ej3n1-ej4n1)
-            ej2n2 *= (self.Dt*self.Vel[j])**2/(12*self.Ds**4)
-            ej2n2 += 2*ej2n1-ej2n0
-            
-            
-            # Lax-Wendroff 4 order time correction Hjn
+            # Lax-Wendroff 4 order time correction LWjn
             # space derivatives to solve time derivatives 
-            # sequence
-            # 0, 1, 2, 3, 4 => j-2, j-1, j, j+1, j+2
+            # sequence, space derivatives 4 order
+            # 0, 1, 2, 3, 4, 5, 6 => j-3, j-2, j-1, j, j+1, j+2, j+3
             # 0, 1, 2 => n-1, n, n+1
             # there is no propagation outside boundaries
-            ej0n = 0.0
-            ej1n = 0.0
-            ej2n = self.Utime[1][j]
-            ej3n = 0.0
-            ej4n = 0.0
             # constant velocity outside boundaries
-            vj0n = self.Vel[j]
             vj1n = self.Vel[j]
             vj2n = self.Vel[j]
             vj3n = self.Vel[j]
             vj4n = self.Vel[j]
+            vj5n = self.Vel[j]
+            #######################################
             
+            if j-3 > 0:
+                ej0n = self.Utime[1][j-3]
+            if j-2 > 0: 
+                ej1n = self.Utime[1][j-2]
+                vj1n = self.Vel[j-2]
             if j-1 > 0: 
-                ej1n = self.Utime[1][j-1]
-                vj1n = self.Vel[j-1]
+                ej2n = self.Utime[1][j-1]
+                vj2n = self.Vel[j-1]
             if j+1 < self.N: 
-                ej3n = self.Utime[1][j+1]
-                vj3n = self.Vel[j+1]
-            if j-2 > 0:
-                ej0n = self.Utime[1][j-2]
-                vj0n = self.Vel[j-2]
-            if j+2 < self.N:
-                ej4n = self.Utime[1][j+2]
-                vj4n = self.Vel[j+2]
+                ej4n = self.Utime[1][j+1]
+                vj4n = self.Vel[j+1]
+            if j+2 < self.N: 
+                ej5n = self.Utime[1][j+2]
+                vj5n = self.Vel[j+2]
+            if j+3 < self.N:
+                ej6n = self.Utime[1][j+3]
             
-            Hjn = 2*vj2n*(-vj0n+16*vj1n-30*vj2n+16*vj3n-vj4n)/(144*self.Ds**8)
-            Hjn *= (-ej0n+16*ej1n-30*ej2n+16*ej3n-ej4n)
-            Hjn += (vj2n**2)*(ej0n-4*ej1n+6*ej2n-4*ej3n+ej4n)/(self.Ds**4)
-            Hjn *= -(self.Dt**4)/12
-            self.Utime[2][j] =  ej2n2 + Hjn
+            # simple forth order space, 2 order time
+            ej3n2 = (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/12
+            ej3n2 *= (self.Dt*vj3n)**2/(self.Ds**2)
+            ej3n2 += 2*ej3n-ej3n0
+            
+            # Lax-Wendroff 4 order time correction LWjn
+            LWjn = (-vj1n**2+16*vj2n**2-30*vj3n**2+16*vj4n**2-vj5n**2)
+            LWjn *= (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/144
+            LWjn += (vj1n**2-8*vj2n**2+8*vj4n**2-vj5n**2)*(ej0n-8*ej1n+13*ej2n-13*ej4n+8*ej5n-ej6n)/48
+            LWjn += (vj3n**2)*(-ej0n+12*ej1n-39*ej2n+56*ej3n-39*ej4n+12*ej5n-ej6n)/6
+            LWjn *= (vj3n*self.Dt**2)**2/(12*self.Ds**4)
+            self.Utime[2][j] =  ej3n2 + LWjn
+            self.Utime[2][j] =  ej3n2
         
         # update stack times
         self.Utime[0] = self.Utime[1]
@@ -196,6 +193,14 @@ class Wave1DField:
         self.t = self.t + 1
         
         return self
+    
+    def _CurrentTime(self):
+        if(self.Dt == None
+           or self.t == None):
+            print "can't solve next steps"
+            
+        return self.t*self.Dt
+
 
     def Loop(self, Save=False, name='Exp1D'):
         """
