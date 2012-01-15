@@ -178,13 +178,13 @@ class Wave1DField:
             ej3n2 += 2*ej3n-ej3n0
             
             # Lax-Wendroff 4 order time correction LWjn
-            LWjn = (-vj1n**2+16*vj2n**2-30*vj3n**2+16*vj4n**2-vj5n**2)
-            LWjn *= (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/144
-            LWjn += (vj1n**2-8*vj2n**2+8*vj4n**2-vj5n**2)*(ej0n-8*ej1n+13*ej2n-13*ej4n+8*ej5n-ej6n)/48
-            LWjn += (vj3n**2)*(-ej0n+12*ej1n-39*ej2n+56*ej3n-39*ej4n+12*ej5n-ej6n)/6
+            LWjn = (vj1n-8*vj2n+8*vj4n-vj5n)**2/144
+            LWjn += vj3n*(-vj1n+16*vj2n-30*vj3n+16*vj4n-vj5n)/12
+            LWjn *= (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/72
+            LWjn += vj3n*(vj1n-8*vj2n+8*vj4n-vj5n)*(ej0n-8*ej1n+13*ej2n-13*ej4n+8*ej5n-ej6n)/48
+            LWjn += vj3n**2*(-ej0n+12*ej1n-39*ej2n+56*ej3n-39*ej4n+12*ej5n-ej6n)/6
             LWjn *= (vj3n*self.Dt**2)**2/(12*self.Ds**4)
             self.Utime[2][j] =  ej3n2 + LWjn
-            self.Utime[2][j] =  ej3n2
         
         # update stack times
         self.Utime[0] = self.Utime[1]
