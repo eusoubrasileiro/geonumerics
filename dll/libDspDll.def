@@ -1,0 +1,4 @@
+; dlltool --base-file C:\Users\andre\AppData\Local\Temp/cca02332.base --output-exp DspDll.exp --dllname DspDll.dll --output-def libDspDll.def --no-export-all-symbols --add-stdcall-alias --exclude-symbol=DllMainCRTStartup@12 --def C:\Users\andre\AppData\Local\Temp/cca02332.def --output-lib libDspDll.a
+EXPORTS
+	dspDft@16 @ 1
+	dspDft = dspDft@16 @ 2
