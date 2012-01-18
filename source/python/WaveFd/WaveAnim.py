@@ -38,7 +38,7 @@ def _AviFromPng(name):
     return
 
 
-def Wave1DAnim(snapshots, name='Wave1DAnim', bckg=None, anim="gif", Ds=1, Dt=0.01, frameint=50):
+def Wave1DAnim(snapshots, name='Wave1DAnim', bckg=None, anim="gif", Ds=1, Dt=0.01, frameint=10):
     """
     snapshot is a 2d matrix [time][frames]
     anim = animation tipe (gif or avi)
@@ -72,12 +72,13 @@ def Wave1DAnim(snapshots, name='Wave1DAnim', bckg=None, anim="gif", Ds=1, Dt=0.0
             mn = mni
     
     for t in range(tm):
-        if bckg != None: # plot background
-            py.plot(bckg)
-        
         py.plot(spaceaxis, snapshots[t])
+        
+        if bckg != None: # plot background
+            py.plot(spaceaxis, bckg)
+        
         py.axis(ymax=mx, ymin=mn) # set axis ranges
-        py.text(0.7*sm*Ds, 0.7*mx, "{0:1.3f}".format(timeaxis[t])) # draw time
+        py.text(0.7*sm*Ds, 0.7*mx, "{0:1.5f}".format(timeaxis[t])) # draw time
         # since its just math objects would be perfect
         # will be something like Wave1DAnim001.png
         py.savefig(name+"{0:03d}".format(t)+'.png', dpi=50)
@@ -87,7 +88,8 @@ def Wave1DAnim(snapshots, name='Wave1DAnim', bckg=None, anim="gif", Ds=1, Dt=0.0
     
     if ( anim == "gif"):
         _GifFromPng(name, frameint)
-
+        _Clear(name, "png")
+        
     if ( anim == "avi"):
         _AviFromPng(name)
     

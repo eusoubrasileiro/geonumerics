@@ -1,6 +1,7 @@
 #!/usr/bin
 
 import numpy as np
+import time
 
 def LinearSin(Fc=40.0, dt=None, plot=False):
     """
@@ -10,14 +11,41 @@ def LinearSin(Fc=40.0, dt=None, plot=False):
     if ( dt > 1/(2.0*Fc) or dt == None):
         dt = 1/(2.0*Fc) 
     
-    t = np.arange(0, 1/Fc, dt)
-    wavelet = np.sin(2*np.pi*Fc*t)*(-Fc*t+1)
+    t = np.arange(0, 1.0/Fc, dt)
+    wavelet = np.sin(2.0*np.pi*Fc*t)*(-Fc*t+1.0)
     
     print "total wavelet time : %.1f miliseconds" % (dt*np.size(wavelet)*1000)
     wavelet = wavelet/(np.max(wavelet)-np.min(wavelet))
     
     # invert the function so, it starts with a small perturbation [::-1]
     return wavelet
+
+class SourceWavelet:
+    """
+    Represents the source wavelet, characteristic of the source
+    creating the perturbation wave field
+    """
+    def __init__(self, Fc=40.0, Type=None):
+        """
+        Fc - central frequency
+        
+        Type can be:
+        LinearSin - 1) Linear decreasing one period sin(2pi*f) 
+        """
+        
+        self.Fc = Fc
+        
+        if ( Type == None):
+            self._Type = LinearSin
+        
+    def Samples(self, dt):
+        """
+        get the values itself based on the predefined Fc
+        and the passed dt
+        """
+        return self._Type(Fc=self.Fc,dt=dt)
+        
+
 
 class Wave1DField:
     """
@@ -27,31 +55,39 @@ class Wave1DField:
     """
 
     def __init__(self,
+                 Ds=None,
+                 Wavelet=None,
                  N=100,
-                 Ds=0.5,
                  Dtr=0.04,
                  Si=50,
-                 Maxtime=1.0):
+                 Maxtime=0.5):
         """
         initialize a new wave equation field,
         for solving with finite diferences method
+        Ds = space increment in x (will be automatic modified if convergence can not be achieved based on Wavelet)
+        Wavelet = source energy wavelet intance
         Nx number of discretization in x  - ground dimension (e.g. meters)
-        Ds = Dx grid spacing in x 
         Dtr time step for recording (e.g. seconds) 
         Si = energy source position
-        Wavelet = source energy wavelet
         Maxtime = simulation max time (seconds)
         TODO: dt has always to be much smaller than the desired
         time snapshots, and equal the wavelet sample rate
         use a variable for that after...
         Also use a better first aproximation time to avoid bad wavelet formation
         """
-        self.N = N
+        
         self.Ds = Ds
+        self.N = N
         self.Dtr = Dtr
         self.Si = Si
         self.Maxtime = Maxtime
+        
+        if (isinstance(Wavelet, SourceWavelet) == False):
+            raise Exception("Not a Wavelet type class")
+        
+        self._WvInst = Wavelet
         self.Wavelet = None
+        
         # time step of solution, to be defined        
         self.Dt = None
         # 2nd order time, backward
@@ -67,7 +103,7 @@ class Wave1DField:
         # grid[t][i] = 0.0
         # velocity field for each (x) point
         # velocity doesn't vary with time
-        self.Vel = np.zeros([self.N])
+        self.Vel = None
 
     def SetVel(self, Velocity):
         """
@@ -79,14 +115,10 @@ class Wave1DField:
                 self.Vel = Velocity
         # if not put a constant velocity
         else:
-            self.Vel[:][:] = Velocity
+            self.Vel = np.zeros(self.N) + Velocity
             
-    def _CalculateDt(self):
-        """
-        Calculate time step based on convergence criteria
-        Look at Jing-Bo Chen Geophysics
-        """
 
+        
     def _Source(self):
         """
         ( Wavelet ) Set the boundary condition at the pertubation source position.
@@ -153,6 +185,7 @@ class Wave1DField:
             vj3n = self.Vel[j]
             vj4n = self.Vel[j]
             vj5n = self.Vel[j]
+            LWjn=0.0
             #######################################
             
             if j-3 > 0:
@@ -200,7 +233,101 @@ class Wave1DField:
             print "can't solve next steps"
             
         return self.t*self.Dt
+    
+    def _GetDeltaSpace(self):
+        """
+        using Niquest principle for avoiding alias in space
+        calculate Ds also using velocity = lambda * frequency 
+        """
+        if(self.Vel == None):
+            raise Exception("Velocity field not set")
+        
+        Omega_fct = 0.05 # must be smaller than 1 to make the inequality true
+        Vmax = max(self.Vel) # maximum velocity
+        Ds = Omega_fct*Vmax/(self._WvInst.Fc*2)
+        
+        # if required for convergence change it
+        if(Ds < self.Ds or self.Ds == None):
+            self.Ds = Ds
+        
+        return Ds 
+        
+    def _CharacteristicR(self):
+        """
+        Convergence criteria for 1D
+        Lax-Wendroff 4order time and space
+        Look at Jing-Bo Chen Geophysics 
+        R expression
+        """
+        a=64.0 # sum of modulus second spatial derivatives weights
+        b=160.0 # sum of modulus forth spatial derivatives weights
+        return 2*np.sqrt(6)/np.sqrt(3*a+np.sqrt(9*a**2+12*b))
+        
+    def _GetDeltaTime(self):
+        """
+        Calculate time step based on convergence criteria for 1D
+        Lax-Wendroff 4order time and space
+        Look at Jing-Bo Chen Geophysics 
+        """
+        J_fct = 0.5 # must be smaller than 1 to make the inequality true
+        # remember time is 2 order so must be smaller for better convergence
+        Ds = self._GetDeltaSpace()
+        Vmax = max(self.Vel)
+        self.Dt = Ds*self._CharacteristicR()*J_fct/Vmax
+        
+        if(self.Dt > self.Dtr): # in a extreme case where recording step is smaller
+            self.Dt = self.Dtr
+            
+        return self.Dt
+    
+    def _GetWavelet(self):
+        """
+        using the defined time step get the wavelet
+        """
+        if(self.Dt == None):
+            raise Exception("Time step not defined")
+            return
+        
+        self.Wavelet = self._WvInst.Samples(self.Dt)
 
+    def _NumberInteractions(self):
+        """
+        Number of interaction based on Maxtime
+        and time step
+        """
+        return int(self.Maxtime/self.Dt)
+    
+    def _IntervalInteractions(self):
+        """
+        number of interactions at every Dtr seconds
+        """
+        return int(self.Dtr/self.Dt) # snapshots interval at every Dtr seconds
+
+    def TotalEstimatedTime(self):
+        """
+        Estimate time based on time for 100 interactions
+        """
+        if(self.Vel == None):
+            raise Exception("Velocity field not set")
+        
+        self._GetDeltaTime()
+        self._GetWavelet()
+        
+        initial = time.clock()
+        self.t = 1
+
+        for i in range(100):
+            self._Source()
+            self.Next()
+
+        final = time.clock()
+        timeperstep = (final-initial)/100.0
+        
+        print "time per step (s)", timeperstep
+        print "Estimated time (s)", self._NumberInteractions()*timeperstep
+        print "Number of snapshots ", int(self._NumberInteractions()/self._IntervalInteractions())
+        
+        self.Utime[:][:] = 0
 
     def Loop(self, Save=False, name='Exp1D'):
         """
@@ -208,18 +335,20 @@ class Wave1DField:
         saving the matrix snapshots at every (Snapshots)
         """
         
-        if(self.Vel == None 
-           or self.Wavelet == None 
-           or self.Dt == None):
-            print "can't solve next steps"
-            return
+        if(self.Vel == None):
+            raise Exception("Velocity field not set")
+        
+        self._GetDeltaTime()
+        self._GetWavelet()
+        
         #raise        
         self.t = 1
-        mt = int(self.Maxtime/self.Dt)
-        nrc = int(self.Dtr/self.Dt) # snaphots interval at every Dtr seconds
-        movie = np.zeros((mt/nrc, self.N)) # animation matrix at every nrc steps
+        mt = self._NumberInteractions()
+        nrc = self._IntervalInteractions() # snapshots interval at every Dtr seconds
+        movie = np.zeros(((mt/nrc)+1, self.N)) # animation matrix at every nrc steps
         
         j=0 # counter for the animation
+        initial = time.clock()
         
         for t in range(mt):
             self._Source()
@@ -227,10 +356,13 @@ class Wave1DField:
             if ( t%nrc == 0 ):
                 movie[j] = self.Utime[1]
                 j+=1
-        
+                
+        final = time.clock()
+         
         if(Save==True):
             np.save(name, movie)
-            
+        
+        print "real total time (s) ", final-initial
         return movie
     
     
