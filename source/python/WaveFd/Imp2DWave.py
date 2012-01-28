@@ -7,7 +7,7 @@
 
 
 import numpy as np
-from Filters import SincLowPass
+#from Filters import SincLowPass
 # since the matrix is simetric Hermitian and positive definite
 # we can use cholesky to 
 import scipy.linalg as ln
@@ -150,11 +150,11 @@ class WaveField:
 
             self.mUt[Ln][Ln] = self.gama(k, i)
 
-            if(i-1 > 0): # u(x-1,z) inside grid in I
+            if(i-1 >= 0): # u(x-1,z) inside grid in I
                 self.mUt[Ln][Ln-1] = 1.0
             if(i+1 < self.Nx): # u(x+1,z) inside grid in I
                 self.mUt[Ln][Ln+1] = 1.0
-            if(k-1 > 0): #u(x,z-1)
+            if(k-1 >= 0): #u(x,z-1)
                 self.mUt[Ln][Ln-self.Nx]= 1.0
             if(k+1 < self.Nz): #u(x,z+1)
                 self.mUt[Ln][Ln+self.Nx]= 1.0
@@ -192,7 +192,13 @@ class WaveField:
 
         return self.mUtfactor
         
-        
+    # problems may arise if you dont set
+    # the system initial boundary condition
+    # before assemblying and solving
+    # the system. Also should be good
+    # compare the difference matrices factors
+    # in different stages of the solution
+    # to see if the lu solution is really convergin...
     def SolveNextTime(self):
         """
         Calculate the next time (factorization)
@@ -200,9 +206,10 @@ class WaveField:
         """
 
         if(self.Solved == False):
-            self.SolveSystem()
             self.iter=1
-
+            self.SourceBoundaryCondition(self.iter)            
+            self.SolveSystem()
+        
         self.SourceBoundaryCondition(self.iter)
         # in time
         # As t is in [0, 1, 2] (2nd order)
@@ -242,10 +249,6 @@ class WaveField:
         Sx=self.Sx
         Sz=self.Sz
         
-        if( it - 1 >= np.size(Wavelet)):
-            self.Utime[0][Sz][Sx] = self.Utime[1][Sz][Sx] = 0
-            return
-
         if(it - 1 < np.size(Wavelet)):
             self.Utime[0][Sz][Sx] = Wavelet[it-1]
                 
