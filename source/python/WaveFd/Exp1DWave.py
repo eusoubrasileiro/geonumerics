@@ -63,17 +63,14 @@ class Wave1DField:
                  Maxtime=0.5):
         """
         initialize a new wave equation field,
-        for solving with finite diferences method
+        for solving with finite differences method
         Ds = space increment in x (will be automatic modified if convergence can not be achieved based on Wavelet)
-        Wavelet = source energy wavelet intance
-        Nx number of discretization in x  - ground dimension (e.g. meters)
+        Wavelet = source energy wavelet instance
+        Nx number of discrete intervals in x  - ground dimension (e.g. meters)
         Dtr time step for recording (e.g. seconds) 
         Si = energy source position
         Maxtime = simulation max time (seconds)
-        TODO: dt has always to be much smaller than the desired
-        time snapshots, and equal the wavelet sample rate
-        use a variable for that after...
-        Also use a better first aproximation time to avoid bad wavelet formation
+        Also use a better first approximation time to avoid bad wavelet formation
         """
         
         self.Ds = Ds
@@ -243,8 +240,8 @@ class Wave1DField:
             raise Exception("Velocity field not set")
         
         Omega_fct = 0.05 # must be smaller than 1 to make the inequality true
-        Vmax = max(self.Vel) # maximum velocity
-        Ds = Omega_fct*Vmax/(self._WvInst.Fc*2)
+        Vmin = min(self.Vel) # minimum  velocity
+        Ds = Omega_fct*Vmin/(self._WvInst.Fc*2)
         
         # if required for convergence change it
         if(Ds < self.Ds or self.Ds == None):
@@ -269,7 +266,7 @@ class Wave1DField:
         Lax-Wendroff 4order time and space
         Look at Jing-Bo Chen Geophysics 
         """
-        J_fct = 0.5 # must be smaller than 1 to make the inequality true
+        J_fct = 0.1 # must be smaller than 1 to make the inequality true
         # remember time is 2 order so must be smaller for better convergence
         Ds = self._GetDeltaSpace()
         Vmax = max(self.Vel)
@@ -355,6 +352,43 @@ class Wave1DField:
             self.Next()
             if ( t%nrc == 0 ):
                 movie[j] = self.Utime[1]
+                j+=1
+                
+        final = time.clock()
+         
+        if(Save==True):
+            np.save(name, movie)
+        
+        print "real total time (s) ", final-initial
+        return movie
+    
+    def LoopReceiver(self, RcPos=10, Save=False, name='Exp1D'):
+        """
+        Loop through all time steps until (Maxtime)
+        saving the values at the position RcPos 
+        snapshots at every (Snapshots)
+        """
+        
+        if(self.Vel == None):
+            raise Exception("Velocity field not set")
+        
+        self._GetDeltaTime()
+        self._GetWavelet()
+        
+        #raise        
+        self.t = 1
+        mt = self._NumberInteractions()
+        nrc = self._IntervalInteractions() # snapshots interval at every Dtr seconds
+        movie = np.zeros(((mt/nrc)+1)) # animation matrix at every nrc steps
+        
+        j=0 # counter for the animation
+        initial = time.clock()
+        
+        for t in range(mt):
+            self._Source()
+            self.Next()
+            if ( t%nrc == 0 ):
+                movie[j] = self.Utime[1][RcPos]
                 j+=1
                 
         final = time.clock()

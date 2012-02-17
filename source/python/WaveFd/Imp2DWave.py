@@ -7,7 +7,7 @@
 
 
 import numpy as np
-from Filters import SincLowPass
+#from Filters import SincLowPass
 # since the matrix is simetric Hermitian and positive definite
 # we can use cholesky to 
 import scipy.linalg as ln
@@ -44,15 +44,16 @@ class WaveField:
     2 order centered in space
     2 order backward in time
     no convergence limitations??
+    Change to Crank-Nicholson
     """
 
     def __init__(self,
-                 Nx=100,
-                 Nz=50,
+                 Nx=200,
+                 Nz=100,
                  Ds=0.5,
                  Dt=0.001,
-                 Sx=1,
-                 Sz=1,
+                 Sx=10,
+                 Sz=10,
                  Wavelet=None,
                  Fw=40,
                  Snapshots=1,
@@ -121,8 +122,8 @@ class WaveField:
         else:
             self.Vel[:][:] = Velocity
 
-    def gama(self, k, i):
-        return -(4.0+(self.Ds/(self.Dt*self.Vel[k][i]))**2)
+    def alfa(self, k, i):
+        return 0.5*(self.Vel[k][i]*self.Dt/self.Ds)**2
 
 
     def LinearSystem(self):
@@ -139,7 +140,7 @@ class WaveField:
         
 
         # assembly linear system, the linear system
-        # ignores external part of the grid = free boundary
+        # ignores external part of the grid = locked boundary
         # ln go through all the cells in the grid Ut
         # each cell gives one equation (line)
         for Ln in range(0, self.Nz*self.Nx, 1): 
@@ -148,16 +149,16 @@ class WaveField:
             i = Ln%self.Nx 
             k = Ln/self.Nx  
 
-            self.mUt[Ln][Ln] = self.gama(k, i)
+            self.mUt[Ln][Ln] = 4*self.alfa(k, i)+1
 
-            if(i-1 > 0): # u(x-1,z) inside grid in I
-                self.mUt[Ln][Ln-1] = 1.0
+            if(i-1 >= 0): # u(x-1,z) inside grid in I
+                self.mUt[Ln][Ln-1] = -self.alfa(k, i)
             if(i+1 < self.Nx): # u(x+1,z) inside grid in I
-                self.mUt[Ln][Ln+1] = 1.0
-            if(k-1 > 0): #u(x,z-1)
-                self.mUt[Ln][Ln-self.Nx]= 1.0
+                self.mUt[Ln][Ln+1] = -self.alfa(k, i)
+            if(k-1 >= 0): #u(x,z-1)
+                self.mUt[Ln][Ln-self.Nx]= -self.alfa(k, i)
             if(k+1 < self.Nz): #u(x,z+1)
-                self.mUt[Ln][Ln+self.Nx]= 1.0
+                self.mUt[Ln][Ln+self.Nx]= -self.alfa(k, i)
 
         return self.mUt
 
@@ -167,16 +168,27 @@ class WaveField:
         """
         #independent term, where the previous times goes in
         self.vId = np.zeros([self.Nz*self.Nx])
+        u = self.Utime
         # fill the independent vector
         for Ln in range(0, self.Nz*self.Nx, 1): 
             # turn the indices to the one of original matrix
             i = Ln%self.Nx 
-            k = Ln/self.Nx  
+            k = Ln/self.Nx         
+            # boundary locked    
+            u0 = u1 = u2 = u3 = 0.0
             
-            # -2 u(x,z,t-1) + u(x,z,t-2)
-            self.vId[Ln] = -2*self.Utime[1][k][i]+self.Utime[0][k][i]
-            # / (Ds/(Dt*Vel(x,z)))**2
-            self.vId[Ln] /= (self.Ds/(self.Dt*self.Vel[k][i]))**2
+            if(i-1 >= 0): # u(x-1,z) inside grid in I
+                u0 = u[1][k][i-1]
+            if(i+1 < self.Nx): # u(x+1,z) inside grid in I
+                u1 = u[1][k][i+1]
+            if(k-1 >= 0): #u(x,z-1)
+                u2 = u[1][k-1][i]
+            if(k+1 < self.Nz): #u(x,z+1)
+                u3 = u[1][k+1][i]
+            
+            
+            self.vId[Ln] = self.alfa(k, i)*(u0+u1+u2+u3)
+            self.vId[Ln] += (2-4*self.alfa(k, i))*u[1][k][i] - u[0][k][i]
 
         return self.vId
 
@@ -242,10 +254,6 @@ class WaveField:
         Sx=self.Sx
         Sz=self.Sz
         
-        if( it - 1 >= np.size(Wavelet)):
-            self.Utime[0][Sz][Sx] = self.Utime[1][Sz][Sx] = 0
-            return
-
         if(it - 1 < np.size(Wavelet)):
             self.Utime[0][Sz][Sx] = Wavelet[it-1]
                 
