@@ -1,22 +1,24 @@
 #!/usr/bin
 
 import numpy as np
-import time        
+import time
+import scipy.linalg as ln
+from Wavelet import *
 
 
 class Wave1DField:
     """
-    Explicit 1D wave equation
-    4 order centered in space
-    4 order backward in time Lax-Wendroff
+    Implicit 1D wave equation
+    2 order centered in space
+    2 order backward in time Lax-Wendroff
     """
 
     def __init__(self,
                  Ds=None,
                  Wavelet=None,
-                 N=100,
-                 Dtr=0.04,
-                 Si=50,
+                 N=200,
+                 Dtr=0.01,
+                 Si=100,
                  Maxtime=0.5):
         """
         initialize a new wave equation field,
@@ -43,7 +45,7 @@ class Wave1DField:
         self.Wavelet = None
         
         # time step of solution, to be defined        
-        self.Dt = None
+        self.Dt = 0.001
         # 2nd order time, backward
         # so we need plus order+2 grids
         self.Nt = 3
@@ -58,6 +60,8 @@ class Wave1DField:
         # velocity field for each (x) point
         # velocity doesn't vary with time
         self.Vel = None
+        self.Solved = False
+        self.t = 1
 
     def SetVel(self, Velocity):
         """
@@ -70,7 +74,9 @@ class Wave1DField:
         # if not put a constant velocity
         else:
             self.Vel = np.zeros(self.N) + Velocity
-            
+        
+    def R2(self, i):
+        return (self.Ds/(self.Dt*self.Vel[i]))**2
 
         
     def _Source(self):
@@ -99,87 +105,101 @@ class Wave1DField:
 
         return
     
+    def LinearSystem(self):
+        """
+        Assembly linear system
+        """
+        
+        # assembly matrix of linear system
+        # to solve u(t) based on u(t-1) and u(t-2)
+        # the matrix includes all future values of u
+        # in the entire grid, so size is the number of cells
+        # start with zeros that is also the countour condition u(t)=0
+        self.mUt = np.zeros([self.N, self.N])
+        
+
+        # assembly linear system, the linear system
+        # ignores external part of the grid = locked boundary
+        # ln go through all the cells in the grid Ut
+        # each cell gives one equation (line)
+        for Ln in range(0, self.N, 1): 
+            # 1.0*u(x-1) + gama(x)*u(x) + 1.0*u(x+1) 
+            # turn the indices to the one of original matrix
+            i = Ln
+            
+            self.mUt[i][i] = -2.0-self.R2(i)
+
+            if(i-1 >= 0): # u(x-1) inside grid in I
+                self.mUt[Ln][Ln-1] = 1.0
+            if(i+1 < self.N): # u(x+1) inside grid in I
+                self.mUt[Ln][Ln+1] = 1.0
+            
+        return self.mUt
+
+    def Independent(self):
+        """
+        Independent term
+        """
+        #independent term, where the previous times goes in
+        self.vId = np.zeros([self.N])
+        # fill the independent vector
+        for Ln in range(0, self.N, 1): 
+            # turn the indices to the one of original matrix
+            i = Ln
+            
+            # -2 u(x,t-1) + u(x,t-2)
+            self.vId[Ln] = -2*self.Utime[1][i]+self.Utime[0][i]
+            # / (Ds/(Dt*Vel(x,z)))**2
+            self.vId[Ln] *= self.R2(i)
+
+        return self.vId
+
+
+    def SolveSystem(self):
+        """
+        Find ... factorization of the matrix
+        once found each time step is appying a recipe
+        """
+        self.LinearSystem()
+        self.mUtfactor = ln.lu_factor(self.mUt)
+        self.Solved = True
+
+        return self.mUtfactor
+        
+        
     def Next(self):
-        if(self.Vel == None 
-           or self.Wavelet == None 
-           or self.Dt == None
-           or self.t == None):
-            print "can't solve next steps"
-            return
-        
+        """
+        Calculate the next time (factorization)
+        and update the time stack grids
+        """
+
+        if(self.Solved == False):
+            self.SolveSystem()
+            self.t=1
+
         self._Source()
+        # in time
+        # As t is in [0, 1, 2] (2nd order)
+        # time t in this case is Utime[2]
+
+        v = self.Independent()
+
+        result = ln.lu_solve(self.mUtfactor, v)
+        # reshape the vector to became a matrix again
+        self.Utime[2] = result
+
+        # make the update in the time stack
+        # before [t-2, t-1,  t]
+        # after  [t-1, t,  t+1]
+        # so t-2 receive t-1 and etc.
+
+        u = self.Utime 
+        u[0] = u[1]
+        u[1] = u[2]
         
-        for j in range(self.N):
-            
-            # sequence 4 order space, 4 order time
-            # 0, 1, 2, 3, 4, 5, 6 => j-3, j-2, j-1, j, j+1, j+2, j+3
-            # 0, 1, 2 => n-1, n, n+1
-            ej3n0 = self.Utime[0][j] # n-1
-            
-            # just for convention n means n1 = time n
-            ej0n=0.0
-            ej1n=0.0
-            ej2n=0.0
-            ej3n=self.Utime[1][j] # n
-            ej4n=0.0
-            ej5n=0.0
-            ej6n=0.0
-            
-            ej3n2 = 0.0 # n+1
-            
-            # Lax-Wendroff 4 order time correction LWjn
-            # space derivatives to solve time derivatives 
-            # sequence, space derivatives 4 order
-            # 0, 1, 2, 3, 4, 5, 6 => j-3, j-2, j-1, j, j+1, j+2, j+3
-            # 0, 1, 2 => n-1, n, n+1
-            # there is no propagation outside boundaries
-            # constant velocity outside boundaries
-            vj1n = self.Vel[j]
-            vj2n = self.Vel[j]
-            vj3n = self.Vel[j]
-            vj4n = self.Vel[j]
-            vj5n = self.Vel[j]
-            LWjn=0.0
-            #######################################
-            
-            if j-3 > 0:
-                ej0n = self.Utime[1][j-3]
-            if j-2 > 0: 
-                ej1n = self.Utime[1][j-2]
-                vj1n = self.Vel[j-2]
-            if j-1 > 0: 
-                ej2n = self.Utime[1][j-1]
-                vj2n = self.Vel[j-1]
-            if j+1 < self.N: 
-                ej4n = self.Utime[1][j+1]
-                vj4n = self.Vel[j+1]
-            if j+2 < self.N: 
-                ej5n = self.Utime[1][j+2]
-                vj5n = self.Vel[j+2]
-            if j+3 < self.N:
-                ej6n = self.Utime[1][j+3]
-            
-            # simple forth order space, 2 order time
-            ej3n2 = (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/12
-            ej3n2 *= (self.Dt*vj3n)**2/(self.Ds**2)
-            ej3n2 += 2*ej3n-ej3n0
-            
-            # Lax-Wendroff 4 order time correction LWjn
-            LWjn = (vj1n-8*vj2n+8*vj4n-vj5n)**2/144
-            LWjn += vj3n*(-vj1n+16*vj2n-30*vj3n+16*vj4n-vj5n)/12
-            LWjn *= (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/72
-            LWjn += vj3n*(vj1n-8*vj2n+8*vj4n-vj5n)*(ej0n-8*ej1n+13*ej2n-13*ej4n+8*ej5n-ej6n)/48
-            LWjn += vj3n**2*(-ej0n+12*ej1n-39*ej2n+56*ej3n-39*ej4n+12*ej5n-ej6n)/6
-            LWjn *= (vj3n*self.Dt**2)**2/(12*self.Ds**4)
-            self.Utime[2][j] =  ej3n2 + LWjn
-        
-        # update stack times
-        self.Utime[0] = self.Utime[1]
-        self.Utime[1] = self.Utime[2]
-        
-        self.t = self.t + 1
-        
-        return self
+        self.t +=1
+
+        return
     
     def _CurrentTime(self):
         if(self.Dt == None
@@ -196,7 +216,7 @@ class Wave1DField:
         if(self.Vel == None):
             raise Exception("Velocity field not set")
         
-        Omega_fct = 0.05 # must be smaller than 1 to make the inequality true
+        Omega_fct = 0.25 # must be smaller than 1 to make the inequality true
         Vmin = min(self.Vel) # minimum  velocity
         Ds = Omega_fct*Vmin/(self._WvInst.Fc*2)
         
@@ -204,32 +224,14 @@ class Wave1DField:
         if(Ds < self.Ds or self.Ds == None):
             self.Ds = Ds
         
-        return Ds 
-        
-    def _CharacteristicR(self):
-        """
-        Convergence criteria for 1D
-        Lax-Wendroff 4order time and space
-        Look at Jing-Bo Chen Geophysics 
-        R expression
-        """
-        a=64.0 # sum of modulus second spatial derivatives weights
-        b=160.0 # sum of modulus forth spatial derivatives weights
-        return 2*np.sqrt(6)/np.sqrt(3*a+np.sqrt(9*a**2+12*b))
-        
+        return Ds
+    
     def _GetDeltaTime(self):
         """
-        Calculate time step based on convergence criteria for 1D
-        Lax-Wendroff 4order time and space
-        Look at Jing-Bo Chen Geophysics 
+        Calculate time step
         """
-        J_fct = 0.1 # must be smaller than 1 to make the inequality true
-        # remember time is 2 order so must be smaller for better convergence
-        Ds = self._GetDeltaSpace()
-        Vmax = max(self.Vel)
-        self.Dt = Ds*self._CharacteristicR()*J_fct/Vmax
         
-        if(self.Dt > self.Dtr): # in a extreme case where recording step is smaller
+        if(self.Dt > self.Dtr or self.Dt == None): 
             self.Dt = self.Dtr
             
         return self.Dt
@@ -265,7 +267,9 @@ class Wave1DField:
             raise Exception("Velocity field not set")
         
         self._GetDeltaTime()
-        self._GetWavelet()
+        self._GetDeltaSpace()
+        #self._GetWavelet()
+        
         
         initial = time.clock()
         self.t = 1
@@ -293,7 +297,8 @@ class Wave1DField:
             raise Exception("Velocity field not set")
         
         self._GetDeltaTime()
-        self._GetWavelet()
+        self._GetDeltaSpace()
+        #self._GetWavelet()
         
         #raise        
         self.t = 1
@@ -329,7 +334,7 @@ class Wave1DField:
         if(self.Vel == None):
             raise Exception("Velocity field not set")
         
-        self._GetDeltaTime()
+        self._GetDeltaSpace()()
         self._GetWavelet()
         
         #raise        

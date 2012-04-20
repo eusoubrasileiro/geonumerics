@@ -16,6 +16,16 @@ def WindowHann(N):
     """
     return numpy.sin(numpy.arange(0, N, 1)*numpy.pi/(N-1));
 
+def GaussHannWindow(N, sg=0.25):
+    """
+    GaussianHanning Window working for smooth the frequency response
+    sg < 0.5
+    """
+    # since Gaussian extends to the infinity it must be cutted
+    hw = WindowHann(N);
+    return hw*numpy.exp(-0.5*((numpy.arange(0, N, 1)-(N-1)/2)/(sg*(N-1)/2))**2)
+    
+
 
 # filtro caixa passa baixa (frequencia corte fc)
 # infinite impulse response? e filtro nao causal
@@ -215,7 +225,7 @@ def SincTrapezoidalLowPass(N, dt, Ramp, Fc, plot=False):
 
     return y
 
-def ConvFft2(signal, FilterKernel):
+def _ConvFft(signal, FilterKernel):
     """
     Convolution with fft much faster approach
     works exatcly as convolve(x,y)
@@ -228,7 +238,7 @@ def ConvFft2(signal, FilterKernel):
     signal = pylab.real(pylab.ifft(pylab.fft(signal)*pylab.fft(FilterKernel)));
     return signal[:fs+ss-1];
 
-def ConvFft3(signal, FilterKernel):
+def ConvFft(signal, FilterKernel):
     """
     Convolution with fft much faster approach
     works exatcly as convolve(x,y) for y equal a FilterKernel response.
@@ -249,7 +259,7 @@ def ConvFft3(signal, FilterKernel):
         return
     # padd zeros all until they have the size N+M-1
     # and convolve
-    signal = ConvFft2(signal, FilterKernel)
+    signal = _ConvFft(signal, FilterKernel)
     beg = (ss+fs-1)/2-(ss-1)/2
     end = (ss+fs-1)/2+(ss-1)/2
     # just the central part of the convolution
@@ -259,7 +269,7 @@ def ConvFft3(signal, FilterKernel):
 
 
 
-def ConvFft(signal, filterKernel, dt, detrend=pylab.detrend_linear, plot=False):
+def _LegacyConvFft(signal, filterKernel, dt, detrend=pylab.detrend_linear, plot=False):
     """
     wrap around convolution from numerical recipes
     (wrap around advantage: the only advantage is the the output samples from

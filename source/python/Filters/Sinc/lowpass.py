@@ -1,6 +1,27 @@
 import numpy
 import pylab
 
+"""
+To play use SincLowPass()
+to create the filter kernel 
+and ConvFft() to apply it
+
+Eg.
+
+lowpass.ConvFft(Sd, lowpass.SincLowPass(1001, 0.5, 0.1) )
+
+filters the Sd array using a LowPass filter of 1001 points
+with a cut-off frequency of 0.5 Hz and sample rate of 0.1 s
+
+You can also use a hanning taper window 
+before applying the filter
+
+Eg.
+fkernel = lowpass.SincLowPass(1001, 0.5, 0.1) 
+fkernel_tapered = Fkernel*WindowHann(np.size(fkernel))
+...
+
+"""
 
 def SincLowPass(N, fc, dt):
     """
@@ -72,7 +93,7 @@ def _FilterSize(RTbtw=0.2, Fc=125, dt=0.001):
     Fs = 2/(RTbtw*Fc*dt);
     return _NextOdd(Fs.__int__());
 
-def ConvFft2(signal, FilterKernel): 
+def _ConvFft(signal, FilterKernel): 
     """
     Convolution with fft much faster approach
     works exactly as convolve(x,y)
@@ -85,7 +106,7 @@ def ConvFft2(signal, FilterKernel):
     signal = pylab.real(pylab.ifft(pylab.fft(signal)*pylab.fft(FilterKernel)));
     return signal[:fs+ss-1];
 
-def ConvFft3(signal, FilterKernel):
+def ConvFft(signal, FilterKernel):
     """
     Convolution with fft much faster approach
     works exatcly as convolve(x,y) for y equal a FilterKernel response.
@@ -106,7 +127,7 @@ def ConvFft3(signal, FilterKernel):
         return
     # padd zeros all until they have the size N+M-1
     # and convolve
-    signal = ConvFft2(signal, FilterKernel)
+    signal = _ConvFft(signal, FilterKernel)
     beg = (ss+fs-1)/2-(ss-1)/2
     end = (ss+fs-1)/2+(ss-1)/2
     # just the central part of the convolution

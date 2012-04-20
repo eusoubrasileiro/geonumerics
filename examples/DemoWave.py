@@ -1,4 +1,7 @@
 #!/usr/bin
+
+sys.path.append('..\\source\\python');
+
 import ImplicitAcousticWave as wv
 
 def Demo():
