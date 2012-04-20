@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
-# Name:        filters demos
-# Purpose:     some examples using the filters.py library
+# Name:        Filters demos
+# Purpose:     some examples using the Filters.py library
 #
 # Author:      andre
 #
@@ -16,7 +16,7 @@ sys.path.append('..\\source\\python');
 # sys.path.append(os.path.join('..','log','python'))
 # the above to be able to load the modules bellow
 import samplesignals
-import filters
+import Filters
 import pyplot
 import numpy
 from numpy.random import rand
@@ -37,11 +37,11 @@ def SincBandPassNonLinear(RBTW=0.05):
     N = numpy.size(s)
     print "Number of samples input %d" % N
     # use the upper limit of frequency to get the number of samples needed to a relative bandwidth transition desired
-    Nf = filters.FilterSize(RTbtw=RBTW, Fc=25, dt=0.01);
-    fir = filters.SincBandPass(Nf, 0.01, 5, 25); # filtro passa banda caixa frequencias de corte de passagem de 5Hz ah 25Hz
-    res = filters.ConvFft(s, fir, 0.01, plot=True); # mostra o resultado da conv.
+    Nf = Filters.FilterSize(RTbtw=RBTW, Fc=25, dt=0.01);
+    fir = Filters.SincBandPass(Nf, 0.01, 5, 25); # filtro passa banda caixa frequencias de corte de passagem de 5Hz ah 25Hz
+    res = Filters.ConvFft(s, fir, 0.01, plot=True); # mostra o resultado da conv.
     # older way
-    # res = filters.ConvEnd(s, fir, 0.01, plot=True); # mostra o resultado da conv.
+    # res = Filters.ConvEnd(s, fir, 0.01, plot=True); # mostra o resultado da conv.
     pyplot.plotfftcompare(s, res, 0.01);
     return res;
 
@@ -57,11 +57,11 @@ def SincTrapezoidalLowPassNoise():
     print " Input number of samples %d" % numpy.size(s)
     #filter depends on the sample rate and the transition bandwidth we want
     # we want 20% its a reasonable value
-    Nf = filters.FilterSize(RTbtw=0.2, Fc=3, dt=0.05);
+    Nf = Filters.FilterSize(RTbtw=0.2, Fc=3, dt=0.05);
     print " Filter number of samples %d" % Nf
-    filter = filters.SincTrapezoidalLowPass(Nf, 0.05, 0.5, 3);
-    #res  = filters.ConvFft(s, filter, 0.05, plot=True);
-    res  = filters.ConvFft3(s, filter);
+    filter = Filters.SincTrapezoidalLowPass(Nf, 0.05, 0.5, 3);
+    #res  = Filters.ConvFft(s, filter, 0.05, plot=True);
+    res  = Filters.ConvFft(s, filter);
     pyplot.plotfftcompare(s, res, 0.05);
 
     return res;
@@ -77,12 +77,12 @@ def SincTrapezoidalLowPassPureNoise(Dt=1.0, FC=0.3*0.5, Ramp=0.1*0.3*0.5, Signal
     RBTW = Relative bandwidth desired of 20%
     Nf = filter Order = Number of samples of the filter is = Nf*2 + 1 (its a Odd number)
     """
-    Nf = filters.FilterSize(RBTW, FC, Dt);
+    Nf = Filters.FilterSize(RBTW, FC, Dt);
     N = numpy.size(Signal)
     print " Input number of samples %d" % N
     #filter smaller than the signal
-    filter = filters.SincTrapezoidalLowPass(Nf, Dt, Ramp, FC);
-    res = filters.ConvFft(Signal, filter, Dt, plot=True);
+    filter = Filters.SincTrapezoidalLowPass(Nf, Dt, Ramp, FC);
+    res = Filters.ConvFft(Signal, filter, Dt, plot=True);
     pyplot.plotfftcompare(Signal, res, Dt);
 
     return res;
@@ -98,8 +98,8 @@ def SincBoxNonStationary():
     sig = rand(100)+3;
     sig[0:25] = sig[0:25]+1;
     sig[75:100] = sig[75:100]-1;
-    filter = filters.SincLowPass(51, 1, 0.1);
-    res = filters.ConvFft(sig, filter, 0.1, plot=True);
+    filter = Filters.SincLowPass(51, 1, 0.1);
+    res = Filters.ConvFft(sig, filter, 0.1, plot=True);
     pyplot.plotfftcompare(sig, res, 0.1);
 
 def main():
@@ -113,4 +113,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-__doc__ = "examples for filters.py"
+__doc__ = "examples for Filters.py"

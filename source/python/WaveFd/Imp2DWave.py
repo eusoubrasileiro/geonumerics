@@ -7,29 +7,16 @@
 
 
 import numpy as np
-#from Filters import SincLowPass
+
 # since the matrix is simetric Hermitian and positive definite
 # we can use cholesky to 
 import scipy.linalg as ln
 
-
-def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
-    """
-    Note: the wavelet must have the same sample rate 
+"""
+ Note: the wavelet must have the same sample rate 
     than the simulation!
     Create a wavelet (energy source) for the simulation.
-    N is number of samples for the wavelet
-    fc is the F central frequency
-    dt is the sample rate
-    Sample the Box Sinc filter simetrically around the zero
-    apply hanning window
-    """
-    print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
-    wavelet = SincLowPass(N, Fc, dt)
-    #wavelet = wavelet*filters.WindowHann(N)
-    #normalize [0,1]
-    return wavelet/(np.max(wavelet)-np.min(wavelet))
-
+"""
 
 def RickerWavelet(N=101, sg=0.5, dt=0.05):
     t = np.arange(-dt*(N-1)/2,(dt*(N-1)/2)+dt, dt)
@@ -48,8 +35,8 @@ class WaveField:
     """
 
     def __init__(self,
-                 Nx=200,
-                 Nz=100,
+                 Nx=100,
+                 Nz=50,
                  Ds=0.5,
                  Dt=0.001,
                  Sx=10,
@@ -65,7 +52,6 @@ class WaveField:
         Nz number of discretization in z
         Ds = Dx = Dz grid spacing in x = grid spacing in z
         Dt time step (e.g. seconds) 
-        (TODO: calculate criteria for convergence!!)
         (Sx, Sz) = energy source position
         Wavelet = wavelet position
         Snapshots = number of iterations between intervals
@@ -150,7 +136,7 @@ class WaveField:
             k = Ln/self.Nx  
 
             self.mUt[Ln][Ln] = 4*self.alfa(k, i)+1
-
+            #is this right?
             if(i-1 >= 0): # u(x-1,z) inside grid in I
                 self.mUt[Ln][Ln-1] = -self.alfa(k, i)
             if(i+1 < self.Nx): # u(x+1,z) inside grid in I

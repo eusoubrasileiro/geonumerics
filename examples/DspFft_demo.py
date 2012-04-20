@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # Name:        Dft vs Fft c code demos
-# Purpose:     some examples using the filters.py library
+# Purpose:     some examples using the Filters.py library
 #
 # Author:      andre
 #-------------------------------------------------------------------------------
