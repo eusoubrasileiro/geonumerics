@@ -1,6 +1,12 @@
 #!/usr/bin/python
 # import filters.py
 
+
+"""
+MAKE SURE THE IPYTHON HAS LOADED THE LAST
+VERSION THAT YOU ARE WORKING!!!!
+A LOT OF TIME YOU LOST BECAUSE OF THAT!!!!!
+"""
 #backend = 'gtk'
 #import matplotlib
 #matplotlib.use(backend)
@@ -30,6 +36,20 @@ def SincWavelet(N=127, Fc=40, dt=0.0005, plot=False):
     #Normalize the maximum amplitude to 1
     wavelet = wavelet/np.max(wavelet)
     return wavelet
+
+def Tr(n):
+    """
+    triangle half period n
+    """
+    N=n
+    t = np.arange(0+1.0/N, 1, 1.0/N)
+    y = 1-t
+    y = np.append(y, 0.0)
+    y_ = 1-t[::-1]
+    y_ = np.insert(y_, 0, 0.0)
+    
+    return np.append(y_, np.append(1, y))
+
 
 def _RickerWavelet(sigma, t):
     wv = 2*np.sqrt(3*sigma)*np.pi**0.25

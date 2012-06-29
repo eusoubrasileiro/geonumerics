@@ -9,6 +9,9 @@ import numpy
 import pylab
 import pyplot
 
+"""
+For all windows size N must be odd
+"""
 
 def WindowHann(N):
     """
@@ -16,7 +19,10 @@ def WindowHann(N):
     """
     return numpy.sin(numpy.arange(0, N, 1)*numpy.pi/(N-1));
 
-def GaussHannWindow(N, sg=0.25):
+# seams that those two bellow are broken
+# for that try N=5, 7 and the results will be weird
+
+def WindowGaussHann(N, sg=0.25):
     """
     GaussianHanning Window working for smooth the frequency response
     sg < 0.5
@@ -25,6 +31,21 @@ def GaussHannWindow(N, sg=0.25):
     hw = WindowHann(N);
     return hw*numpy.exp(-0.5*((numpy.arange(0, N, 1)-(N-1)/2)/(sg*(N-1)/2))**2)
     
+def WindowTukey(N, aph=0.20):
+    """
+    when tukey aph value = zero it becames a rectangular window
+    when tukey aph value = 1 it becames a Hann window
+    size of the plateu is (N-1)(1-aph)
+    """ 
+    nbg = int(aph*(N-1.)/2.)
+    nmd = int((N-1.)*(1.-aph))
+    nen = N-nbg-nmd
+    bg = 0.5*(1.+numpy.cos(numpy.pi*(-1.+(2.*numpy.arange(nbg)/(aph*(N-1.))))))
+    md = 1 + numpy.zeros(nmd)
+    en = 0.5*(1.+numpy.cos(numpy.pi*(1.-2./aph+(2.*numpy.arange(nbg+nmd,N)/(aph*(N-1))))))
+
+    # for simplicity and because I dont want to work now...
+    return numpy.append(bg, numpy.append(md, en))
 
 
 # filtro caixa passa baixa (frequencia corte fc)
