@@ -1,0 +1,56 @@
+I am trying to solve the 2D wave equation with a source term S(x,y). But I am having exponential grow too fast. 
+
+I am considering density Rho(x,y) and Velocity Ve(x,y) varying in space.
+   
+I am using the code bellow to simulate it.
+For the derivatives in space I am using the Chebyshev polynom (5 order) for every 5 neighbor points. I calculate those derivatives x and y directions separated them I put them together in the LP variable.  
+
+The source position is defined by the Si, Sj (50, 50) pair. Producing a triangular Wavelet with main frequency bellow 60Hz. It has been used a const. velocity of 4000 m/s and a const. density of 2000kg/m^3. 
+The grid has NxM (256, 256) dimension with Ds (5 m) increment in space and I am using a time step of Dt=0.001s (1 milisecond). 
+
+I really don't understand the exponential growth that I am having.
+a) The source frequency is way bellow the maximum permitted for my grid :
+   fmax < max(Velocity)/(2*max(increment space)) : fmax = 60 Hz << 4000/10 << 400 Hz 
+b) The stability limit is also way bellow the required:
+   stability < 2/pi : stability = Velocity*Dt/Ds : 
+   
+
+    # calculate derivatives using cheby
+    # derivatives in x and y direction
+    Dx = np.zeros([self.N, self.M]) 
+    Dy = np.zeros([self.N, self.M])
+    x = np.arange(0.0, self.M*wf.Ds, wf.Ds)
+    y = np.arange(0.0, self.N*wf.Ds, wf.Ds)
+
+    # xline by xline
+    for i in range(self.N):        
+        Dx[i] = ChebyshevDerivative(x, self.Pn[i]) # first derivative
+        Dx[i] = ChebyshevDerivative(x, Dx[i]/self.Rho[i]) # second with Rho
+
+    self.Pn = self.Pn.transpose()
+    self.Rho = self.Rho.transpose()
+    Dy = Dy.transpose()
+
+    # yline by yline
+    for i in range(self.M):        
+        Dy[i] = ChebyshevDerivative(y, self.Pn[i]) # first derivative
+        Dy[i] = ChebyshevDerivative(y, Dy[i]/self.Rho[i]) # second with Rho
+
+    self.Pn = self.Pn.transpose()
+    self.Rho = self.Rho.transpose()
+    Dy = Dy.transpose()
+
+    # derivatives combination + source
+    LP = Dx + Dy
+    if(self.t < np.size(self.Wavelet)):
+        LP[self.Si][self.Sj] -= self.Wavelet[self.t]
+       
+    # simple centered differences in time 2nd order
+    self.Pn_1 = (self.Ve**2)*LP*self.Rho*self.Dt**2+2*self.Pn-self.Pn_0     
+
+    # update stack times
+    self.Pn_0 = self.Pn
+    self.Pn = self.Pn_1        
+
+    self.t = self.t + 1
+
