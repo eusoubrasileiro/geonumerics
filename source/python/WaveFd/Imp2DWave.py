@@ -7,16 +7,32 @@
 
 
 import numpy as np
-
+#from Filters import SincLowPass
 # since the matrix is simetric Hermitian and positive definite
 # we can use cholesky to 
 import scipy.linalg as ln
 
 """
  Note: the wavelet must have the same sample rate 
+
+def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
+    """
+    Note: the wavelet must have the same sample rate 
     than the simulation!
     Create a wavelet (energy source) for the simulation.
 """
+    N is number of samples for the wavelet
+    fc is the F central frequency
+    dt is the sample rate
+    Sample the Box Sinc filter simetrically around the zero
+    apply hanning window
+    """
+    print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
+    wavelet = SincLowPass(N, Fc, dt)
+    #wavelet = wavelet*filters.WindowHann(N)
+    #normalize [0,1]
+    return wavelet/(np.max(wavelet)-np.min(wavelet))
+
 
 def RickerWavelet(N=101, sg=0.5, dt=0.05):
     t = np.arange(-dt*(N-1)/2,(dt*(N-1)/2)+dt, dt)
@@ -52,6 +68,7 @@ class WaveField:
         Nz number of discretization in z
         Ds = Dx = Dz grid spacing in x = grid spacing in z
         Dt time step (e.g. seconds) 
+        (TODO: calculate criteria for convergence!!)
         (Sx, Sz) = energy source position
         Wavelet = wavelet position
         Snapshots = number of iterations between intervals
@@ -190,7 +207,13 @@ class WaveField:
 
         return self.mUtfactor
         
-        
+    # problems may arise if you dont set
+    # the system initial boundary condition
+    # before assemblying and solving
+    # the system. Also should be good
+    # compare the difference matrices factors
+    # in different stages of the solution
+    # to see if the lu solution is really convergin...
     def SolveNextTime(self):
         """
         Calculate the next time (factorization)
@@ -200,7 +223,9 @@ class WaveField:
         if(self.Solved == False):
             self.SolveSystem()
             self.iter=1
-
+            self.SourceBoundaryCondition(self.iter)            
+            self.SolveSystem()
+        
         self.SourceBoundaryCondition(self.iter)
         # in time
         # As t is in [0, 1, 2] (2nd order)
@@ -240,6 +265,10 @@ class WaveField:
         Sx=self.Sx
         Sz=self.Sz
         
+        if( it - 1 >= np.size(Wavelet)):
+            self.Utime[0][Sz][Sx] = self.Utime[1][Sz][Sx] = 0
+            return
+
         if(it - 1 < np.size(Wavelet)):
             self.Utime[0][Sz][Sx] = Wavelet[it-1]
                 
