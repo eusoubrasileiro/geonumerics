@@ -10,8 +10,10 @@ import numpy as np
 import time
 
 __doc__ = """
-
-
+Explicit wave equation (acoustic) , finite differences
+3rd order centered in space
+2 order backward in time
+convergence limitations
 """
 
 class W2DWExp:
