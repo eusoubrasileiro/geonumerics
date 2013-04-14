@@ -8,9 +8,10 @@ from Wavelet import *
 
 class Wave1DField:
     """
-    Implicit 1D wave equation
+    Implicit 1D wave equation LU decomposition
+    to solve the system of equations
     2 order centered in space
-    2 order backward in time Lax-Wendroff
+    2 order backward in time
     """
 
     def __init__(self,

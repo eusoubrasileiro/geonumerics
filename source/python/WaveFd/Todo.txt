@@ -1,0 +1,6 @@
+1D methods
+
+Imp1DWave
+LU1DWave
+Exp1DWave
+
