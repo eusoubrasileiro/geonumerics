@@ -1,22 +1,31 @@
 #!/usr/bin
+############
+#
+# TO DO :
+# a) Convergence criteria that I can't understand why is not enough
+# using the current definition 
+# b) Boundary Conditions are ok?
+# c) Source definition is okay?
+
+
 
 import numpy as np
 import time        
+from Wavelet import SourceWavelet
 
-
-class Wave1DField:
+class LaxWand1DField:
     """
     Explicit 1D wave equation
     4 order centered in space
-    4 order backward in time Lax-Wendroff
+    4 order centered in time Lax-Wendroff
     """
 
     def __init__(self,
                  Ds=None,
                  Wavelet=None,
-                 N=100,
-                 Dtr=0.04,
-                 Si=50,
+                 N=300,
+                 Dtr=0.005,
+                 Si=150,
                  Maxtime=0.5):
         """
         initialize a new wave equation field,
@@ -109,69 +118,73 @@ class Wave1DField:
         
         self._Source()
         
+        # for each spatial position
         for j in range(self.N):
             
             # sequence 4 order space, 4 order time
             # 0, 1, 2, 3, 4, 5, 6 => j-3, j-2, j-1, j, j+1, j+2, j+3
             # 0, 1, 2 => n-1, n, n+1
-            ej3n0 = self.Utime[0][j] # n-1
-            
+            uj3n0 = self.Utime[0][j] # n-1
+            uj3n=self.Utime[1][j] # n
+            uj3n2 = 0.0 # n+1			
             # just for convention n means n1 = time n
-            ej0n=0.0
-            ej1n=0.0
-            ej2n=0.0
-            ej3n=self.Utime[1][j] # n
-            ej4n=0.0
-            ej5n=0.0
-            ej6n=0.0
-            
-            ej3n2 = 0.0 # n+1
-            
+            # BOUNDARY CONDITION TO BE LOOKED AT!
+            # no propagtion outside boundaries?			
+            uj0n=0.0
+            uj1n=0.0
+            uj2n=0.0            
+            uj4n=0.0
+            uj5n=0.0
+            uj6n=0.0      
             # Lax-Wendroff 4 order time correction LWjn
             # space derivatives to solve time derivatives 
             # sequence, space derivatives 4 order
             # 0, 1, 2, 3, 4, 5, 6 => j-3, j-2, j-1, j, j+1, j+2, j+3
             # 0, 1, 2 => n-1, n, n+1
-            # there is no propagation outside boundaries
-            # constant velocity outside boundaries
-            vj1n = self.Vel[j]
-            vj2n = self.Vel[j]
-            vj3n = self.Vel[j]
-            vj4n = self.Vel[j]
-            vj5n = self.Vel[j]
+            # 1, 2, 3, 4, 5, => v-2, v-1, v, v+1, v+2
+            # BOUNDARY CONDITION TO BE LOOKED AT!
+            # there is no propagation outside boundaries??
+            # constant velocity outside boundaries???
+            # whyyyyy??? boundary condition weird???
+            vj1 = self.Vel[j]
+            vj2 = self.Vel[j]
+            vj3 = self.Vel[j]
+            vj4 = self.Vel[j]
+            vj5 = self.Vel[j]
+            # velocity is just need until 4th order, that's why just 5 indexes
             LWjn=0.0
             #######################################
             
             if j-3 > 0:
-                ej0n = self.Utime[1][j-3]
+                uj0n = self.Utime[1][j-3]
             if j-2 > 0: 
-                ej1n = self.Utime[1][j-2]
-                vj1n = self.Vel[j-2]
+                uj1n = self.Utime[1][j-2]
+                vj1 = self.Vel[j-2]
             if j-1 > 0: 
-                ej2n = self.Utime[1][j-1]
-                vj2n = self.Vel[j-1]
+                uj2n = self.Utime[1][j-1]
+                vj2 = self.Vel[j-1]
             if j+1 < self.N: 
-                ej4n = self.Utime[1][j+1]
-                vj4n = self.Vel[j+1]
+                uj4n = self.Utime[1][j+1]
+                vj4 = self.Vel[j+1]
             if j+2 < self.N: 
-                ej5n = self.Utime[1][j+2]
-                vj5n = self.Vel[j+2]
+                uj5n = self.Utime[1][j+2]
+                vj5 = self.Vel[j+2]
             if j+3 < self.N:
-                ej6n = self.Utime[1][j+3]
+                uj6n = self.Utime[1][j+3]
             
             # simple forth order space, 2 order time
-            ej3n2 = (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/12
-            ej3n2 *= (self.Dt*vj3n)**2/(self.Ds**2)
-            ej3n2 += 2*ej3n-ej3n0
+            uj3n2 = (-uj1n+16*uj2n-30*uj3n+16*uj4n-uj5n)/12
+            uj3n2 *= (self.Dt*vj3)**2/(self.Ds**2)
+            uj3n2 += 2*uj3n-uj3n0
             
             # Lax-Wendroff 4 order time correction LWjn
-            LWjn = (vj1n-8*vj2n+8*vj4n-vj5n)**2/144
-            LWjn += vj3n*(-vj1n+16*vj2n-30*vj3n+16*vj4n-vj5n)/12
-            LWjn *= (-ej1n+16*ej2n-30*ej3n+16*ej4n-ej5n)/72
-            LWjn += vj3n*(vj1n-8*vj2n+8*vj4n-vj5n)*(ej0n-8*ej1n+13*ej2n-13*ej4n+8*ej5n-ej6n)/48
-            LWjn += vj3n**2*(-ej0n+12*ej1n-39*ej2n+56*ej3n-39*ej4n+12*ej5n-ej6n)/6
-            LWjn *= (vj3n*self.Dt**2)**2/(12*self.Ds**4)
-            self.Utime[2][j] =  ej3n2 + LWjn
+            LWjn = ((vj1-8*vj2+8*vj4-vj5)**2)/144
+            LWjn += vj3*(-vj1+16*vj2-30*vj3+16*vj4-vj5)/12
+            LWjn *= (-uj1n+16*uj2n-30*uj3n+16*uj4n-uj5n)/6
+            LWjn += vj3*(vj1-8*vj2+8*vj4-vj5)*(uj0n-8*uj1n+13*uj2n-13*uj4n+8*uj5n-uj6n)/48
+            LWjn += (vj3**2)*(-uj0n+12*uj1n-39*uj2n+56*uj3n-39*uj4n+12*uj5n-uj6n)/6
+            LWjn *= ((self.Dt*vj3)**2)/(12*self.Ds**4)
+            self.Utime[2][j] =  uj3n2 + LWjn*(self.Dt**2)
         
         # update stack times
         self.Utime[0] = self.Utime[1]
@@ -196,7 +209,7 @@ class Wave1DField:
         if(self.Vel == None):
             raise Exception("Velocity field not set")
         
-        Omega_fct = 0.05 # must be smaller than 1 to make the inequality true
+        Omega_fct = 0.5 # must be smaller than 1 to make the inequality true
         Vmin = min(self.Vel) # minimum  velocity
         Ds = Omega_fct*Vmin/(self._WvInst.Fc*2)
         
@@ -220,14 +233,14 @@ class Wave1DField:
     def _GetDeltaTime(self):
         """
         Calculate time step based on convergence criteria for 1D
-        Lax-Wendroff 4order time and space
-        Look at Jing-Bo Chen Geophysics 
+        Based on:
+        1) Dan D. Kosloff and Edip Baysal (Forward modeling by a Fourier mehtod) - APPENDIX
+        2) Panorama Technologies Chapter 2 (Finite Differences page 56) 
         """
-        J_fct = 0.1 # must be smaller than 1 to make the inequality true
-        # remember time is 2 order so must be smaller for better convergence
+        J_fct = 0.5 # must be smaller than 1 to make the inequality true
         Ds = self._GetDeltaSpace()
         Vmax = max(self.Vel)
-        self.Dt = Ds*self._CharacteristicR()*J_fct/Vmax
+        self.Dt = 2*Ds*J_fct/(Vmax*2*3.141592654)
         
         if(self.Dt > self.Dtr): # in a extreme case where recording step is smaller
             self.Dt = self.Dtr
@@ -244,19 +257,6 @@ class Wave1DField:
         
         self.Wavelet = self._WvInst.Samples(self.Dt)
 
-    def _NumberInteractions(self):
-        """
-        Number of interaction based on Maxtime
-        and time step
-        """
-        return int(self.Maxtime/self.Dt)
-    
-    def _IntervalInteractions(self):
-        """
-        number of interactions at every Dtr seconds
-        """
-        return int(self.Dtr/self.Dt) # snapshots interval at every Dtr seconds
-
     def TotalEstimatedTime(self):
         """
         Estimate time based on time for 100 interactions
@@ -264,8 +264,11 @@ class Wave1DField:
         if(self.Vel == None):
             raise Exception("Velocity field not set")
         
-        self._GetDeltaTime()
-        self._GetWavelet()
+        if(self.Ds == None):
+            self._GetDeltaSpace()
+        
+        if(self.Dt == None):
+            self._GetDeltaTime()
         
         initial = time.clock()
         self.t = 1
@@ -292,13 +295,18 @@ class Wave1DField:
         if(self.Vel == None):
             raise Exception("Velocity field not set")
         
-        self._GetDeltaTime()
+        if(self.Ds == None):
+            self._GetDeltaSpace()
+        
+        if(self.Dt == None):
+            self._GetDeltaTime()
+        
         self._GetWavelet()
         
         #raise        
         self.t = 1
-        mt = self._NumberInteractions()
-        nrc = self._IntervalInteractions() # snapshots interval at every Dtr seconds
+        mt = int(self.Maxtime/self.Dt)
+        nrc = int(self.Dtr/self.Dt) # snapshots interval at every Dtr seconds
         movie = np.zeros(((mt/nrc)+1, self.N)) # animation matrix at every nrc steps
         
         j=0 # counter for the animation
@@ -329,13 +337,18 @@ class Wave1DField:
         if(self.Vel == None):
             raise Exception("Velocity field not set")
         
-        self._GetDeltaTime()
+        if(self.Ds == None):
+            self._GetDeltaSpace()
+        
+        if(self.Dt == None):
+            self._GetDeltaTime()
+        
         self._GetWavelet()
         
         #raise        
         self.t = 1
-        mt = self._NumberInteractions()
-        nrc = self._IntervalInteractions() # snapshots interval at every Dtr seconds
+        mt = int(self.Maxtime/self.Dt)
+        nrc = int(self.Dtr/self.Dt) # snapshots interval at every Dtr seconds
         movie = np.zeros(((mt/nrc)+1)) # animation matrix at every nrc steps
         
         j=0 # counter for the animation
