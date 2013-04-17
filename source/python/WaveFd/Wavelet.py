@@ -37,11 +37,18 @@ def SincWavelet(N=127, Fc=40, dt=0.0005, plot=False):
     wavelet = wavelet/np.max(wavelet)
     return wavelet
 
-def Tr(n):
+def Triangle(N=None, Fc=40.0, Dt=0.001):
     """
-    triangle half period n
+    Triangle Wave one Period
+    Defined by 1 or 2:
+    1) N (half length)
+    2) 
+        a) Desired Frequency Fc
+        b) Sample Rate Dt
     """
-    N=n
+    if(N==None):
+        N=int(1/float(Fc*Dt))        
+    
     t = np.arange(0+1.0/N, 1, 1.0/N)
     y = 1-t
     y = np.append(y, 0.0)
@@ -51,7 +58,7 @@ def Tr(n):
     return np.append(y_, np.append(1, y))
 
 
-def _RickerWavelet(sigma, t):
+def RickerWavelet(sigma, t):
     wv = 2*np.sqrt(3*sigma)*np.pi**0.25
     return wv* (1-(t/sigma)**2)*np.exp(-0.5*(t/sigma)**2) 
 
@@ -75,7 +82,7 @@ def LinearSin(Fc=40.0, dt=None, plot=False):
     return wavelet
 
 
-def _GaussCos(Fc=40.0, dt=None, plot=False):
+def GaussCos(Fc=40.0, dt=None, plot=False):
     """
     TODO
     Linear decreasing one period cos... 

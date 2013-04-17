@@ -1,0 +1,5 @@
+syntax: glob
+*.npy
+*.pyc
+*.avi
+*.gif

@@ -1,0 +1,13 @@
+Exp2DWave
+Question doc to be sent to stackoverflow.
+
+import Exp2DWave
+import Wavelet
+
+times = zeros([200, 50, 50])
+fd = Exp2DWave.W2DWExp(Nx=50, Nz=50, Dx=20, Dz=20, Dt=0.005)
+wv = Wavelet.SincWavelet(Fc=30)
+fd.SetSource(25, 25, wv)
+fd.SetVel(2000.0)
+fd.t = 1
+

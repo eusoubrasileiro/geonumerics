@@ -30,7 +30,6 @@ class Wave1DField:
         Dtr time step for recording (e.g. seconds) 
         Si = energy source position
         Maxtime = simulation max time (seconds)
-        Also use a better first approximation time to avoid bad wavelet formation
         """
         
         self.Ds = Ds

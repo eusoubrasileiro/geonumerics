@@ -1,6 +1,21 @@
 1D methods
 
-Imp1DWave
-LU1DWave
-Exp1DWave
+Exp1DLaxWave
+Imp1DLuWave
 
+2D methods
+
+Exp2DWave
+Imp2DLuWave
+Exp2DSplineWave
+Exp2DSplineZeroWave
+
+TODOS:
+
++ Correct limits of convergence must be found ; that might be related to source definition.
+
+(OK) + Implicit methods working perfectly, have not found yet problems of convergence. :D
+
++ Document Implicit methods and convergence...
+
++ WaveAnim to plot Field for 2D!!
