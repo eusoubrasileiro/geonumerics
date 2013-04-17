@@ -1,4 +1,4 @@
-#!/usr/bin
+#!/usr/python
 
 sys.path.append('..\\source\\python');
 

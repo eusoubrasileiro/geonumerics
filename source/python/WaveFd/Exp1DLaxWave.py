@@ -13,7 +13,7 @@ import numpy as np
 import time        
 from Wavelet import SourceWavelet
 
-class LaxWand1DField:
+class LaxWand1DWave:
     """
     Explicit 1D wave equation
     4 order centered in space
@@ -82,7 +82,7 @@ class LaxWand1DField:
             
 
         
-    def _Source(self):
+    def Source(self):
         """
         ( Wavelet ) Set the boundary condition at the pertubation source position.
         ( sx ) source position
@@ -116,7 +116,7 @@ class LaxWand1DField:
             print "can't solve next steps"
             return
         
-        self._Source()
+        self.Source()
         
         # for each spatial position
         for j in range(self.N):
@@ -194,14 +194,14 @@ class LaxWand1DField:
         
         return self
     
-    def _CurrentTime(self):
+    def CurrentTime(self):
         if(self.Dt == None
            or self.t == None):
             print "can't solve next steps"
             
         return self.t*self.Dt
     
-    def _GetDeltaSpace(self):
+    def GetDeltaSpace(self):
         """
         using Niquest principle for avoiding alias in space
         calculate Ds also using velocity = lambda * frequency 
@@ -219,7 +219,7 @@ class LaxWand1DField:
         
         return Ds 
         
-    def _CharacteristicR(self):
+    def CharacteristicR(self):
         """
         Convergence criteria for 1D
         Lax-Wendroff 4order time and space
@@ -230,7 +230,7 @@ class LaxWand1DField:
         b=160.0 # sum of modulus forth spatial derivatives weights
         return 2*np.sqrt(6)/np.sqrt(3*a+np.sqrt(9*a**2+12*b))
         
-    def _GetDeltaTime(self):
+    def GetDeltaTime(self):
         """
         Calculate time step based on convergence criteria for 1D
         Based on:
@@ -238,7 +238,7 @@ class LaxWand1DField:
         2) Panorama Technologies Chapter 2 (Finite Differences page 56) 
         """
         J_fct = 0.5 # must be smaller than 1 to make the inequality true
-        Ds = self._GetDeltaSpace()
+        Ds = self.GetDeltaSpace()
         Vmax = max(self.Vel)
         self.Dt = 2*Ds*J_fct/(Vmax*2*3.141592654)
         
@@ -247,7 +247,7 @@ class LaxWand1DField:
             
         return self.Dt
     
-    def _GetWavelet(self):
+    def GetWavelet(self):
         """
         using the defined time step get the wavelet
         """
@@ -265,16 +265,16 @@ class LaxWand1DField:
             raise Exception("Velocity field not set")
         
         if(self.Ds == None):
-            self._GetDeltaSpace()
+            self.GetDeltaSpace()
         
         if(self.Dt == None):
-            self._GetDeltaTime()
+            self.GetDeltaTime()
         
         initial = time.clock()
         self.t = 1
 
         for i in range(100):
-            self._Source()
+            self.Source()
             self.Next()
 
         final = time.clock()
@@ -296,12 +296,12 @@ class LaxWand1DField:
             raise Exception("Velocity field not set")
         
         if(self.Ds == None):
-            self._GetDeltaSpace()
+            self.GetDeltaSpace()
         
         if(self.Dt == None):
-            self._GetDeltaTime()
+            self.GetDeltaTime()
         
-        self._GetWavelet()
+        self.GetWavelet()
         
         #raise        
         self.t = 1
@@ -313,7 +313,7 @@ class LaxWand1DField:
         initial = time.clock()
         
         for t in range(mt):
-            self._Source()
+            self.Source()
             self.Next()
             if ( t%nrc == 0 ):
                 movie[j] = self.Utime[1]
@@ -338,12 +338,12 @@ class LaxWand1DField:
             raise Exception("Velocity field not set")
         
         if(self.Ds == None):
-            self._GetDeltaSpace()
+            self.GetDeltaSpace()
         
         if(self.Dt == None):
-            self._GetDeltaTime()
+            self.GetDeltaTime()
         
-        self._GetWavelet()
+        self.GetWavelet()
         
         #raise        
         self.t = 1
@@ -355,7 +355,7 @@ class LaxWand1DField:
         initial = time.clock()
         
         for t in range(mt):
-            self._Source()
+            self.Source()
             self.Next()
             if ( t%nrc == 0 ):
                 movie[j] = self.Utime[1][RcPos]

@@ -1,98 +1,57 @@
 #!/usr/bin
-# import filters.py
-
-#backend = 'gtk'
-#import matplotlib
-#matplotlib.use(backend)
-
 
 import numpy as np
-#from Filters import SincLowPass
-# since the matrix is simetric Hermitian and positive definite
-# we can use cholesky to 
 import scipy.linalg as ln
+from Wavelet import Triangle
+import gc, sys
 
-"""
- Note: the wavelet must have the same sample rate 
-
-def SincWavelet(N=101, Fc=40, dt=0.0005, plot=False):
-    """
-    Note: the wavelet must have the same sample rate 
-    than the simulation!
-    Create a wavelet (energy source) for the simulation.
-"""
-    N is number of samples for the wavelet
-    fc is the F central frequency
-    dt is the sample rate
-    Sample the Box Sinc filter simetrically around the zero
-    apply hanning window
-    """
-    print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
-    wavelet = SincLowPass(N, Fc, dt)
-    #wavelet = wavelet*filters.WindowHann(N)
-    #normalize [0,1]
-    return wavelet/(np.max(wavelet)-np.min(wavelet))
-
-
-def RickerWavelet(N=101, sg=0.5, dt=0.05):
-    t = np.arange(-dt*(N-1)/2,(dt*(N-1)/2)+dt, dt)
-    wv = 2/((3*sg)**0.5*np.pi**0.25)
-    wv *= (1 - (t/sg)**2)*np.exp(-t**2/(2*sg**2))
-    return wv
-
-
-class WaveField:
+class Imp2DLuWave:
     """
     Implicit wave equation (acoustic) , finite differences
     2 order centered in space
     2 order backward in time
-    no convergence limitations??
-    Change to Crank-Nicholson
-    """
-
+    using Lu decomposition 
+    """        
     def __init__(self,
-                 Nx=100,
-                 Nz=50,
-                 Ds=0.5,
-                 Dt=0.001,
-                 Sx=10,
-                 Sz=10,
-                 Wavelet=None,
-                 Fw=40,
-                 Snapshots=1,
-                 MaxIter=1000):
+                 nx,
+                 nz,
+                 ds,
+                 dt,
+                 velocity,
+                 sx,
+                 sz,
+                 maxiter,
+                 nrec=1,
+                 wavelet=None,
+                 ):
         """
-        initialize a new wave equation field,
-        for solving with finite diferences method
-        Nx number of discretization in x  - ground dimension (e.g. meters)
-        Nz number of discretization in z
-        Ds = Dx = Dz grid spacing in x = grid spacing in z
-        Dt time step (e.g. seconds) 
-        (TODO: calculate criteria for convergence!!)
-        (Sx, Sz) = energy source position
-        Wavelet = wavelet position
-        Snapshots = number of iterations between intervals
-        TotalIter = number total of iterations
-        TODO: dt has always to be much smaller than the desired
-        time snapshots, and equal the wavelet sample rate
-        use a variable for that after...
+        Initialize a new wave equation field implict centered differences second order
+        
+        nx       : number of discretization in x
+        nz       : number of discretization in z
+        ds       : dx=dz=ds grid spacing 
+        dt       : time step - e.g. seconds
+        velocity : 2d velocity distribution
+        sx/sz    : source wavelet position in indexes (i, k)
+        maxiter  : total iterations
+        nrec     : recording interval 1 equals time step 
+        wavelet  : source wavelet function applied at the position (sx, sz)
+                   must have sample rate equal to dt
         """
-        if(Wavelet == None):
-            self.Wavelet=10*RickerWavelet(101,sg=Dt/10.0,dt=Dt) # 10 power
-
-        self.Ds = Ds
-        self.Dt = Dt
-        self.Snapshots = Snapshots
-        self.MaxIter = MaxIter
-        self.Sx = Sx
-        self.Sz = Sz
+        self.Ds = ds
+        self.Dt = dt
+        self.Nrec = nrec
+        self.MaxIter = maxiter
+        self.Si = sx
+        self.Sk = sz
+        self.Wavelet = wavelet
         
         # 2rd order on space, centered
         # due 2rd order finite diferences ... N+2 + order
         # countour definitions will be adressed when assembling the 
         # linear system
-        self.Nx=Nx
-        self.Nz=Nz
+        self.Nx=nx
+        self.Nz=nz
         # 2nd order time, backward
         # so we need plus order+2 grids
         self.Nt = 3
@@ -110,37 +69,48 @@ class WaveField:
         # velocity doesnt vary with time
         self.Vel = np.zeros([self.Nz, self.Nx])
         # linear system not solved yet
-        self.Solved = False
-
-
-    def SetVel(self, Velocity):
-        """
-        sets the velocy field
-        """
         # if a matrix of velocity is passed fills it
-        if(type(Velocity) is np.ndarray):
-            if(np.shape(Velocity) == (self.Nz, self.Nx) ):
-                self.Vel = Velocity
+        
+        # setts up the velocity field
+        if(type(velocity) is np.ndarray):
+            if(np.shape(velocity) == (self.Nz, self.Nx) ):
+                self.Vel = velocity
         # if not put a constant velocity
         else:
-            self.Vel[:][:] = Velocity
+            self.Vel[:][:] = velocity
+    
+        if(wavelet == None):         
+            # using the principle of planar waves 
+            # to set the source wavelet frequency               
+            minvelocity = self.Vel[0][0]
+            for array in self.Vel:
+                vmin = array.min()
+                if(minvelocity > vmin):
+                    minvelocity = vmin                
+            #default wavelet triangular
+            self.Fw = minvelocity/(2*self.Ds);    
+            self.Wavelet=10*Triangle(Fc=self.Fw,Dt=self.Dt)
 
-    def alfa(self, k, i):
+
+    def Alpha(self, k, i):
+        """
+        repeats a lot in the code and in the matrix so
+        better a def or it, if V varies
+        """
         return 0.5*(self.Vel[k][i]*self.Dt/self.Ds)**2
 
 
     def LinearSystem(self):
         """
         Assembly linear system
-        """
-        
+        Depends on Velocity field and Alpha
+        """        
         # assembly matrix of linear system
         # to solve u(t) based on u(t-1) and u(t-2)
         # the matrix includes all future values of u
         # in the entire grid, so size is the number of cells
         # start with zeros that is also the countour condition u(t)=0
-        self.mUt = np.zeros([self.Nz*self.Nx, self.Nz*self.Nx])
-        
+        self.mUt = np.zeros([self.Nz*self.Nx, self.Nz*self.Nx])      
 
         # assembly linear system, the linear system
         # ignores external part of the grid = locked boundary
@@ -152,22 +122,23 @@ class WaveField:
             i = Ln%self.Nx 
             k = Ln/self.Nx  
 
-            self.mUt[Ln][Ln] = 4*self.alfa(k, i)+1
+            self.mUt[Ln][Ln] = 4*self.Alpha(k, i)+1
             #is this right?
             if(i-1 >= 0): # u(x-1,z) inside grid in I
-                self.mUt[Ln][Ln-1] = -self.alfa(k, i)
+                self.mUt[Ln][Ln-1] = -self.Alpha(k, i)
             if(i+1 < self.Nx): # u(x+1,z) inside grid in I
-                self.mUt[Ln][Ln+1] = -self.alfa(k, i)
+                self.mUt[Ln][Ln+1] = -self.Alpha(k, i)
             if(k-1 >= 0): #u(x,z-1)
-                self.mUt[Ln][Ln-self.Nx]= -self.alfa(k, i)
+                self.mUt[Ln][Ln-self.Nx]= -self.Alpha(k, i)
             if(k+1 < self.Nz): #u(x,z+1)
-                self.mUt[Ln][Ln+self.Nx]= -self.alfa(k, i)
+                self.mUt[Ln][Ln+self.Nx]= -self.Alpha(k, i)
 
         return self.mUt
 
     def Independent(self):
         """
         Independent term
+        Depends on alpha, velocity and pressure
         """
         #independent term, where the previous times goes in
         self.vId = np.zeros([self.Nz*self.Nx])
@@ -190,51 +161,34 @@ class WaveField:
                 u3 = u[1][k+1][i]
             
             
-            self.vId[Ln] = self.alfa(k, i)*(u0+u1+u2+u3)
-            self.vId[Ln] += (2-4*self.alfa(k, i))*u[1][k][i] - u[0][k][i]
+            self.vId[Ln] = self.Alpha(k, i)*(u0+u1+u2+u3)
+            self.vId[Ln] += (2-4*self.Alpha(k, i))*u[1][k][i] - u[0][k][i]
 
         return self.vId
-
-
-    def SolveSystem(self):
-        """
-        Find ... factorization of the matrix
-        once found each time step is appying a recipe
-        """
-        self.LinearSystem()
-        self.mUtfactor = ln.lu_factor(self.mUt)
-        self.Solved = True
-
-        return self.mUtfactor
-        
-    # problems may arise if you dont set
-    # the system initial boundary condition
-    # before assemblying and solving
-    # the system. Also should be good
-    # compare the difference matrices factors
-    # in different stages of the solution
-    # to see if the lu solution is really convergin...
+      
     def SolveNextTime(self):
         """
         Calculate the next time (factorization)
         and update the time stack grids
         """
 
-        if(self.Solved == False):
-            self.SolveSystem()
+        try:
+            self.mUtfactor
+        except :
             self.iter=1
-            self.SourceBoundaryCondition(self.iter)            
-            self.SolveSystem()
-        
-        self.SourceBoundaryCondition(self.iter)
-        # in time
+            self.LinearSystem()
+            # gets the m factor from the solved system
+            self.mUtfactor = ln.lu_factor(self.mUt)
+
+        # modification in the grid due source position
+        self.Source(self.iter)
         # As t is in [0, 1, 2] (2nd order)
         # time t in this case is Utime[2]
-
+        # the independent term of the matrix, due the pressure field
         v = self.Independent()
 
         result = ln.lu_solve(self.mUtfactor, v)
-        # reshape the vector to became a matrix again
+        # reshape the vector to become a matrix again
         self.Utime[2] = np.reshape(result, (self.Nz, self.Nx))
 
         # make the update in the time stack
@@ -251,45 +205,48 @@ class WaveField:
         return
     
 
-    def SourceBoundaryCondition(self, it):
+    def Source(self, it):
         """
-        ( wavelet ) Set the boundary condition at the pertubation source position.
-        ( sx, sz ) source position
-        ( it ) At the given time step. Set t and t-1. (2 order finite diferences)
-        if the iteration time is greater than the wavelet time
-        sets the source position as 0
-        TODO:
-        verify if its really working
+        ( wavelet ) Set the source condition at the pertubation source position.
+        ( Si, Sk ) source position
+        ( it ) At the given time step. Set t and t-1. (2 order finite diferences)        
         """
-        Wavelet=self.Wavelet
-        Sx=self.Sx
-        Sz=self.Sz
-        
-        if( it - 1 >= np.size(Wavelet)):
-            self.Utime[0][Sz][Sx] = self.Utime[1][Sz][Sx] = 0
+        if( it > np.size(self.Wavelet)-1):
             return
-
-        if(it - 1 < np.size(Wavelet)):
-            self.Utime[0][Sz][Sx] = Wavelet[it-1]
-                
-        if(it < np.size(Wavelet)):
-            self.Utime[1][Sz][Sx] = Wavelet[it]
+           
+        self.Utime[1][self.Sk][self.Si] = self.Wavelet[it]        
+        ## it should not necessary to replace back the old perturbation value
+        ##if(it - 1 < np.size(Wavelet)):
+        ##    self.Utime[0][Sk][Si] = Wavelet[it-1]
 
         return
-
-    def Loop(self, Save=True):
+        
+    def Clean():
+        """
+        De-alloc variables, specially the huge matrix
+        used to solve the problem
+        """
+        self.mUt = None
+        self.mUtfactor = None
+        gc.collect()
+        
+        
+    def Loop(self):
         """
         Loop through all time steps until (MaxIter)
-        saving the matrix snapshots at every (Snapshots)
+        saving the matrix at every (Nrec) interactions
         """
-        MaxIter=self.MaxIter 
-        Snapshots=self.Snapshots         
-        
+        snapiter=0
+                
+        movie = np.zeros([int(self.MaxIter/self.Nrec), self.Nz, self.Nx])
         # for little problems with the wavelet put initialize as 1
-        for i in range(1, MaxIter, 1):
-            self.SourceBoundaryCondition(i)
+        for i in range(1, self.MaxIter, 1):
             self.SolveNextTime()
-            if(i%Snapshots==0): # every n'th Snapshots
-                np.save("IfE"+str(i), self.Utime[1])
-
-        return
+            if(i%self.Nrec==0): # every n'th Nrec
+                movie[snapiter] = self.Utime[1]
+                snapiter+=1
+            sys.stdout.write("\r progressing .. %.1f%%" %(100.0*float(i)/self.MaxIter))
+            sys.stdout.flush()        
+        sys.stdout.write(" done! \n")
+                
+        return movie

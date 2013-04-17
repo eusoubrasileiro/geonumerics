@@ -9,7 +9,7 @@ import pylab as py
 import numpy as np
 import time
 
-__doc__ = """
+"""
 Explicit wave equation (acoustic) , finite differences
 3rd order centered in space
 2 order backward in time
@@ -150,7 +150,7 @@ class W2DWExp:
         self.t = self.t + 1
 
 def main():
-    field = wave_equation(10,10,Dt=0.1)
+    field = W2DWExp(10,10,Dt=0.1)
     # 10 m/s
     field.SetVel(0.04)
     # initial condition at t
