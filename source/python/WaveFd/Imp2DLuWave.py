@@ -3,15 +3,18 @@
 import numpy as np
 import scipy.linalg as ln
 from Wavelet import Triangle
-import gc, sys
+import sys
 
 class Imp2DLuWave:
     """
     Implicit wave equation (acoustic) , finite differences
     2 order centered in space
     2 order backward in time
-    using Lu decomposition 
-    """        
+    using Lu decomposition and factor
+    weird but truth:
+    Cholesky_band requires LinAlgError: 1-th leading minor not positive definite
+    cho_factor gives wrong results as time varies
+    """
     def __init__(self,
                  nx,
                  nz,
@@ -25,16 +28,16 @@ class Imp2DLuWave:
                  wavelet=None,
                  ):
         """
-        Initialize a new wave equation field implict centered differences second order
-        
+        Initialize a new wave equation field implicit centered differences second order
+
         nx       : number of discretization in x
         nz       : number of discretization in z
-        ds       : dx=dz=ds grid spacing 
+        ds       : dx=dz=ds grid spacing
         dt       : time step - e.g. seconds
         velocity : 2d velocity distribution
         sx/sz    : source wavelet position in indexes (i, k)
         maxiter  : total iterations
-        nrec     : recording interval 1 equals time step 
+        nrec     : recording interval 1 equals time step
         wavelet  : source wavelet function applied at the position (sx, sz)
                    must have sample rate equal to dt
         """
@@ -45,17 +48,17 @@ class Imp2DLuWave:
         self.Si = sx
         self.Sk = sz
         self.Wavelet = wavelet
-        
+
         # 2rd order on space, centered
         # due 2rd order finite diferences ... N+2 + order
-        # countour definitions will be adressed when assembling the 
+        # countour definitions will be adressed when assembling the
         # linear system
         self.Nx=nx
         self.Nz=nz
         # 2nd order time, backward
         # so we need plus order+2 grids
         self.Nt = 3
-        
+
         # amplitude or strain values, for each (x, z) point
         # must follow the order nt, nz, nx
         self.Utime = np.zeros([self.Nt, self.Nz, self.Nx])
@@ -70,7 +73,7 @@ class Imp2DLuWave:
         self.Vel = np.zeros([self.Nz, self.Nx])
         # linear system not solved yet
         # if a matrix of velocity is passed fills it
-        
+
         # setts up the velocity field
         if(type(velocity) is np.ndarray):
             if(np.shape(velocity) == (self.Nz, self.Nx) ):
@@ -78,17 +81,17 @@ class Imp2DLuWave:
         # if not put a constant velocity
         else:
             self.Vel[:][:] = velocity
-    
-        if(wavelet == None):         
-            # using the principle of planar waves 
-            # to set the source wavelet frequency               
+
+        if(wavelet == None):
+            # using the principle of planar waves
+            # to set the source wavelet frequency
             minvelocity = self.Vel[0][0]
             for array in self.Vel:
                 vmin = array.min()
                 if(minvelocity > vmin):
-                    minvelocity = vmin                
+                    minvelocity = vmin
             #default wavelet triangular
-            self.Fw = minvelocity/(2*self.Ds);    
+            self.Fw = minvelocity/(2*self.Ds);
             self.Wavelet=10*Triangle(Fc=self.Fw,Dt=self.Dt)
 
 
@@ -104,23 +107,23 @@ class Imp2DLuWave:
         """
         Assembly linear system
         Depends on Velocity field and Alpha
-        """        
+        """
         # assembly matrix of linear system
         # to solve u(t) based on u(t-1) and u(t-2)
         # the matrix includes all future values of u
         # in the entire grid, so size is the number of cells
         # start with zeros that is also the countour condition u(t)=0
-        self.mUt = np.zeros([self.Nz*self.Nx, self.Nz*self.Nx])      
+        self.mUt = np.zeros([self.Nz*self.Nx, self.Nz*self.Nx])
 
         # assembly linear system, the linear system
         # ignores external part of the grid = locked boundary
         # ln go through all the cells in the grid Ut
         # each cell gives one equation (line)
-        for Ln in range(0, self.Nz*self.Nx, 1): 
-            # 1.0*u(x-1,z) + gama(x,z)*u(x,z) + 1.0*u(x+1,z) + 1.0*u(x,z-1) + 1.0*u(x,z+1) 
+        for Ln in range(0, self.Nz*self.Nx, 1):
+            # 1.0*u(x-1,z) + gama(x,z)*u(x,z) + 1.0*u(x+1,z) + 1.0*u(x,z-1) + 1.0*u(x,z+1)
             # turn the indices to the one of original matrix
-            i = Ln%self.Nx 
-            k = Ln/self.Nx  
+            i = Ln%self.Nx
+            k = Ln/self.Nx
 
             self.mUt[Ln][Ln] = 4*self.Alpha(k, i)+1
             #is this right?
@@ -144,13 +147,13 @@ class Imp2DLuWave:
         self.vId = np.zeros([self.Nz*self.Nx])
         u = self.Utime
         # fill the independent vector
-        for Ln in range(0, self.Nz*self.Nx, 1): 
+        for Ln in range(0, self.Nz*self.Nx, 1):
             # turn the indices to the one of original matrix
-            i = Ln%self.Nx 
-            k = Ln/self.Nx         
-            # boundary locked    
+            i = Ln%self.Nx
+            k = Ln/self.Nx
+            # boundary locked
             u0 = u1 = u2 = u3 = 0.0
-            
+
             if(i-1 >= 0): # u(x-1,z) inside grid in I
                 u0 = u[1][k][i-1]
             if(i+1 < self.Nx): # u(x+1,z) inside grid in I
@@ -159,13 +162,13 @@ class Imp2DLuWave:
                 u2 = u[1][k-1][i]
             if(k+1 < self.Nz): #u(x,z+1)
                 u3 = u[1][k+1][i]
-            
-            
+
+
             self.vId[Ln] = self.Alpha(k, i)*(u0+u1+u2+u3)
             self.vId[Ln] += (2-4*self.Alpha(k, i))*u[1][k][i] - u[0][k][i]
 
         return self.vId
-      
+
     def SolveNextTime(self):
         """
         Calculate the next time (factorization)
@@ -196,48 +199,48 @@ class Imp2DLuWave:
         # after  [t-1, t,  t+1]
         # so t-2 receive t-1 and etc.
 
-        u = self.Utime 
+        u = self.Utime
         u[0] = u[1]
         u[1] = u[2]
-        
+
         self.iter +=1
 
         return
-    
+
 
     def Source(self, it):
         """
         ( wavelet ) Set the source condition at the pertubation source position.
         ( Si, Sk ) source position
-        ( it ) At the given time step. Set t and t-1. (2 order finite diferences)        
+        ( it ) At the given time step. Set t and t-1. (2 order finite diferences)
         """
         if( it > np.size(self.Wavelet)-1):
             return
-           
-        self.Utime[1][self.Sk][self.Si] = self.Wavelet[it]        
+
+        self.Utime[1][self.Sk][self.Si] = self.Wavelet[it]
         ## it should not necessary to replace back the old perturbation value
         ##if(it - 1 < np.size(Wavelet)):
         ##    self.Utime[0][Sk][Si] = Wavelet[it-1]
 
         return
-        
-    def Clean():
-        """
-        De-alloc variables, specially the huge matrix
-        used to solve the problem
-        """
-        self.mUt = None
-        self.mUtfactor = None
-        gc.collect()
-        
-        
+
+    #def Clean():
+        #"""
+        #De-alloc variables, specially the huge matrix
+        #used to solve the problem
+        #"""
+        #self.mUt = None
+        #self.mUtfactor = None
+        #gc.collect()
+
+
     def Loop(self):
         """
         Loop through all time steps until (MaxIter)
         saving the matrix at every (Nrec) interactions
         """
         snapiter=0
-                
+
         movie = np.zeros([int(self.MaxIter/self.Nrec), self.Nz, self.Nx])
         # for little problems with the wavelet put initialize as 1
         for i in range(1, self.MaxIter, 1):
@@ -246,7 +249,7 @@ class Imp2DLuWave:
                 movie[snapiter] = self.Utime[1]
                 snapiter+=1
             sys.stdout.write("\r progressing .. %.1f%%" %(100.0*float(i)/self.MaxIter))
-            sys.stdout.flush()        
+            sys.stdout.flush()
         sys.stdout.write(" done! \n")
-                
+
         return movie

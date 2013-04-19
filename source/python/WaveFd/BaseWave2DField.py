@@ -1,0 +1,182 @@
+#!/usr/bin
+
+import gc, sys, copy
+import numpy as np
+import scipy.linalg as ln
+from Wavelet import Triangle
+import time
+
+class BaseWave2DField(object):
+    """
+    Base class for 2d wave field, considers:
+    * constant density : provides just a velocity field
+    * dx=dz=ds discretization in x and z equal
+    Provides:
+    * a base wavelet source : Wavelet
+    * a 2d velocity field   : Vel
+    * current time field    : Ucurrent
+    * future  time field    : Ufuture        
+    Must implement:
+    * SolveNextTime(self).
+    """        
+    def __init__(self,
+                 nx,
+                 nz,
+                 ds,
+                 dt,
+                 velocity,
+                 sx,
+                 sz,
+                 maxiter,
+                 nrec=1,
+                 wavelet=None,
+                 ):
+        """
+        Initialize a new wave equation field
+        
+        nx       : number of discretization in x
+        nz       : number of discretization in z
+        ds       : dx=dz=ds grid spacing 
+        dt       : time step - e.g. seconds
+        velocity : 2d velocity distribution
+        sx/sz    : source wavelet position in indexes (i, k)
+        maxiter  : total iterations
+        nrec     : recording interval 1 equals time step 
+        wavelet  : source wavelet function applied at the position (sx, sz)
+                   must have sample rate equal to dt
+        """
+        self.Ds = ds
+        self.Dt = dt
+        self.Nrec = nrec
+        self.MaxIter = maxiter
+        self.Si = sx
+        self.Sk = sz
+        self.Wavelet = wavelet        
+        self.Nx= nx
+        self.Nz= nz
+        
+        # amplitude or strain values, for each (x, z) point 
+        self.Ucurrent = np.zeros([self.Nz, self.Nx]) # current time
+        self.Ufuture = np.zeros([self.Nz, self.Nx]) # future time
+        # nx is like collums (i)
+        # nz is like lines (k)
+        # nt is like 4th dimension (t)
+        # eg for firt time grid, 2nd line and 3rd colum
+        # grid[0][1][2] = 0.0
+        # grid[t][k][i] = 0.0        
+        
+        # velocity field for each (x, z) point
+        # velocity doesnt vary with time
+        self.Vel = np.zeros([self.Nz, self.Nx])
+        # if a matrix of velocity is passed fills it        
+        # setts up the velocity field
+        if(type(velocity) is np.ndarray):
+            if(np.shape(velocity) == (self.Nz, self.Nx) ):
+                self.Vel = velocity
+        # if not put a constant velocity
+        else:
+            self.Vel[:][:] = velocity
+    
+        if(wavelet == None):         
+            # using the principle of planar waves 
+            # to set the source wavelet frequency               
+            minvelocity = self.Vel[0][0]
+            for array in self.Vel:
+                vmin = array.min()
+                if(minvelocity > vmin):
+                    minvelocity = vmin                
+            #default wavelet triangular
+            self.Fw = minvelocity/(2*self.Ds);    
+            self.Wavelet=10*Triangle(Fc=self.Fw,Dt=self.Dt)           
+
+
+    def Source(self, tstep):
+        """
+        Set the source perturbation value at is position (Si, Sk) at a given 
+        iteration time step.
+        
+        tstep   :  given time step        
+        """
+        # no perturbation after source finished
+        if( tstep > np.size(self.Wavelet)-1):
+            return
+                    
+        # set at the current time field   
+        self.Ucurrent[self.Sk][self.Si] = self.Wavelet[tstep]
+        
+        
+    def SolveNextTime(self):
+        """
+        Should implement the update of Ufuture, Ucurrent and
+        any other necessary logic of your ag.
+        Should create  
+        * tstep variable : time step indexing, supporting the
+        following logic, inexistence of variable will restart
+        the process.
+         ''' 
+            try:
+                self.tstep += 1
+            except :
+                self.tstep = 0
+         '''       
+        """
+        pass
+    
+#    def Rewind(self):        
+#        """
+#        Put the simulation wave field to the begging stage        
+#        """
+#        try :
+#            del self.tstep        
+#        except:
+#            pass
+#        
+#        self.Ucurrent[:][:] = 0.0 
+#        self.Ufuture[:][:] = 0.0
+        
+                    
+    def Simulate(self):
+        """
+        Loop through time steps solving the field.
+        Uses method:. SolveNextTime().
+        Prints a progress status and time spent at the end.
+
+        Returns:
+            A 'movie' matrix dimensions [MaxIter][Nz][Nx]            
+        """
+        snapiter=0
+        initial = time.clock()                
+        movie = np.zeros([int(self.MaxIter/self.Nrec), self.Nz, self.Nx])
+        # for little problems with the wavelet put initialize as 1?
+        
+        for i in range(1, self.MaxIter, 1):
+            self.SolveNextTime()
+            if(i%self.Nrec==0): # every n'th Nrec
+                movie[snapiter] = self.Ucurrent
+                snapiter+=1
+            sys.stdout.write("\r progressing .. %.1f%%" %(100.0*float(i)/self.MaxIter))
+            sys.stdout.flush()        
+        sys.stdout.write(" done! \n")
+        final = time.clock()
+        sys.stdout.write("solving time (s) %.1f" %(initial-time.clock()))
+                
+        return movie        
+       
+       
+    def EstimateTime(self):
+        """
+        Estimate time based on 100 interactions
+        """       
+        # a shallow copy will work
+        clone = copy.copy(self) 
+        initial = time.clock()            
+        for i in range(100):
+            clone.SolveNextTime()
+        final = time.clock()
+        timeperstep = (final-initial)/100.0        
+        print "Time per step (s)", timeperstep
+        print "Estimated time (s)", self.MaxIter*timeperstep        
+        # let it free for the gc collector
+        del clone    
+        
+    
