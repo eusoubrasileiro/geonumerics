@@ -12,10 +12,7 @@ Exp2DSplineZeroWave
 
 TODOS:
 
-+ Correct limits of convergence must be found ; that might be related to source definition.
+
 
 (OK) + Implicit methods working perfectly, have not found yet problems of convergence. :D
 
-+ Document Implicit methods and convergence...
-
-+ WaveAnim to plot Field for 2D!!
