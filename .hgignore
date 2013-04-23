@@ -4,3 +4,5 @@ syntax: glob
 *.avi
 *.gif
 *.nja
+.project
+.pydevproject

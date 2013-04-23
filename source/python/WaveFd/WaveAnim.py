@@ -1,4 +1,4 @@
-#!/usr/bin
+#!/usr/bin/python
 
 import numpy as np
 import pylab as py

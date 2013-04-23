@@ -1,15 +1,15 @@
 #!/usr/bin/python
 import numpy as np
 from BaseWave2DField import BaseWave2DField
-import pylab as py
+from pylab import ifft, fft, fftshift, real
 
 def FourierDerivative(f):
     N = np.size(f)
     n = np.arange(0,N)
     # df discrete differential operator
-    df = np.complex(0,1)*py.fftshift(n-N/2)
-    dfdt = py.ifft( df*py.fft(f) )  
-    return py.real(dfdt)
+    df = np.complex(0,1)*fftshift(n-N/2)
+    dfdt = ifft( df*fft(f) )  
+    return real(dfdt)
 
 
 class Exp2DFourierWave(BaseWave2DField):

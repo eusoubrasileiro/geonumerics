@@ -7,9 +7,10 @@ import sys
 
 class Imp2DLuWave:
     """
-    Implicit wave equation (acoustic) , finite differences
-    2 order centered in space
-    2 order backward in time
+    Implicit wave equation constant density accoustic, 
+    Finite differences:
+    +2nd error order centered in space
+    +1st error order backward in time
     using Lu decomposition and factor
     weird but truth:
     Cholesky_band requires LinAlgError: 1-th leading minor not positive definite
@@ -115,12 +116,19 @@ class Imp2DLuWave:
         # start with zeros that is also the countour condition u(t)=0
         self.mUt = np.zeros([self.Nz*self.Nx, self.Nz*self.Nx])
 
+        # linear system seams to be strangee?!!?!!??????/
+        # alpha multiplying everything ???????????????????
+        # also independent term with other terms than Alpha(k,i)???????
+        #???????????????????????????????????????????
+        # i think its higher order in spacee or timeeee?????????
+        #????????????? look in the annotations
+
         # assembly linear system, the linear system
         # ignores external part of the grid = locked boundary
         # ln go through all the cells in the grid Ut
         # each cell gives one equation (line)
         for Ln in range(0, self.Nz*self.Nx, 1):
-            # 1.0*u(x-1,z) + gama(x,z)*u(x,z) + 1.0*u(x+1,z) + 1.0*u(x,z-1) + 1.0*u(x,z+1)
+            # 1.0*u(x-1,z) + alpha(x,z)*u(x,z) + 1.0*u(x+1,z) + 1.0*u(x,z-1) + 1.0*u(x,z+1)
             # turn the indices to the one of original matrix
             i = Ln%self.Nx
             k = Ln/self.Nx
@@ -138,6 +146,14 @@ class Imp2DLuWave:
 
         return self.mUt
 
+
+    # linear system seams to be strangee?!!?!!??????/
+    # alpha multiplying everything ???????????????????
+    # also independent term with other terms than Alpha(k,i)???????
+    #???????????????????????????????????????????
+    # i think its higher order in spacee or timeeee?????????
+    #????????????? look in the annotations
+        
     def Independent(self):
         """
         Independent term

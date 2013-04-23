@@ -1,7 +1,3 @@
-import numpy, sys, os
-import pylab
-from numpy.random import rand
-import time
 
 
 def BulkModulus(Vp, Vs, constBulkDensity):

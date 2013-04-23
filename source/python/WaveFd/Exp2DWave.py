@@ -1,174 +1,98 @@
-#!/usr/bin
-# import filters.py
+#!/usr/bin/python
 
-#backend = 'gtk'
-#import matplotlib
-#matplotlib.use(backend)
-
-import pylab as py
 import numpy as np
-import time
+from BaseWave2DField import BaseWave2DField
 
-"""
-Explicit wave equation (acoustic) , finite differences
-3rd order centered in space
-2 order backward in time
-convergence limitations
-"""
-
-class W2DWExp:
-    def __init__(self, Nx=100, Nz=100, Dx=0.5, Dz=0.5, Dt=0.004):
+class Exp2DWave(BaseWave2DField):
+    """
+    Simple explicit wave equation constant density accoustic, 
+    Finite differences:
+    +4rd error order centered in space
+    +1st error order backward in time
+    Convergence?? dt must be very small??
+    Very Slow : try using cython for loop said to be 8x faster!!!
+    """
+    def __init__(self,
+                nx, 
+                nz,
+                ds,
+                dt,
+                velocity,
+                sx,
+                sz,
+                maxiter,
+                nrec=5,
+                wavelet=None):
         """
-        initialize a new wave equation field,
-        for solving with finite diferences method
-        Nx number of discretization in x  - ground dimension (e.g. meters)
-        Nz number of discretization in z
-        Dx grid spacing in x
-        Dz grid spacing in z
-        Dt time step (e.g. seconds)
-        """
-        self.Nx=Nx
-        self.Nz=Nz
-        self.Dx=Dx
-        self.Dz=Dz
-        self.Dt=Dt
-        # 3rd order on space, centered
-        # due 3rd order finite diferences ... N+1 + order
-        # real dimensions are N+1+3 = N+4
-        self.nx = Nx+4
-        self.nz = Nz+4
-        # 2nd order time, backward
-        # so we need plus order+1 grids
+        Initialize a new wave equation field explicit centered differences time
+        and spline for space.
         
-        # amplitude or strain values, for each (x, z) point
-        # must follow the order nt, nz, nx
-        self.U0 = np.zeros([self.nz, self.nx]) # t-1
-        self.U1 = np.zeros([self.nz, self.nx]) # t
-        self.U2 = np.zeros([self.nz, self.nx]) # t+1
-
-        # nx is like collums (i)
-        # nz is like lines (k)
-        # eg for firt time grid, 2nd line and 3rd colum
-        # self.U0[1][2] = 0.0
-        # self.U0[k][i] = 0.0
-        # velocity field for each (x, z) point
-        # velocity doesnt vary with time
-        self.Gvel = np.zeros([self.nz, self.nx])
-
-    def SetVel(self,Velocity=2000):
+        nx       : number of discretization in x
+        nz       : number of discretization in z
+        ds       : dx=dz=ds grid spacing 
+        dt       : time step - e.g. seconds
+        velocity : 2d velocity distribution
+        sx/sz    : source wavelet position in indexes (i, k)
+        maxiter  : total iterations
+        nrec     : recording interval 1 equals time step 
+        wavelet  : source wavelet function applied at the position (sx, sz)
+                   must have sample rate equal to dt
         """
-        sets the velocy field
-        """
-        # if a matrix of velocity is passed fills it
-        if(type(Velocity) is np.ndarray):
-            if(np.shape(Velocity) == (self.nz, self.nx) ):
-                self.Gvel = Velocity
-        # if not put a constant velocity
-        else:
-             self.Gvel[:][:] = Velocity
+        # creates the constant density part first
+        super(Exp2DWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, nrec, wavelet)
+        # backward/forward differences in time, add previous time
+        self.Uprevious = np.zeros([self.Nz, self.Nx])
+        
 
-    def NextTimeIK(self, i, k):
-        """
-        Calculates the Laplacian L at the (i, k) position
-        considering u(i, k) the displacement fielt at time t
-        L(i,k) = d2u + d2u
-                 dx2   dz2
-        centered differences 3rd order
-        """
+    def NextTime(self, i, k):
 
-        # __Avoiding problematic positions!!!
-        # samples needed around the (i, k) position
-        # depends on the order of finite diferences 
-        # finite diference in space
-        # 3rd order = 2 samples before and after
-        if(i+2 > self.nx or i-2 < 0):
-            return
-        if(k+2 > self.nz or k-2 < 0):
-            return
-            
-        # in time t
-        u = self.U1
+        u = self.Ucurrent
+        # u0k u1k*uik*u3k u4k     
+        # Boundary fixed 0 outside        
+        u0k=u1k=u3k=u4k=0.0
+        ui0=ui1=ui3=ui4=0.0
+        uik = u[k][i]      
+          
+        if(i-2 > -1):
+            u0k = u[k][i-2]
+        if(i-1 > -1):
+            u1k = u[k][i-1]
+        if(i+1 < self.Nx):
+            u3k = u[k][i+1]            
+        if(i+2 < self.Nx):
+            u4k = u[k][i+2]
+        if(k-2 > -1):
+            ui0 = u[k-2][i]
+        if(k-1 > -1):
+            ui1 = u[k-1][i]
+        if(k+1 < self.Nz):
+            ui3 = u[k+1][i]            
+        if(k+2 < self.Nz):
+            ui4 = u[k+2][i]
 
-        dx = self.Dx
-        d2u_dx2 = -(u[k][i+2]-2*u[k][i]+u[k][i-2])/12.0
-        d2u_dx2 += 4.0*(u[k][i+1]-2*u[k][i]+u[k][i-1])/3.0
-        d2u_dx2 /= dx
-
-        dz = self.Dz
-        d2u_dz2 = -(u[k+2][i]-2*u[k][i]+u[k-2][i])/12.0
-        d2u_dz2 += 4.0*(u[k+1][i]-2*u[k][i]+u[k-1][i])/3.0
-        d2u_dz2 /= dz
-
-        LaplacianIK = d2u_dx2 + d2u_dz2;
-
-        if(i == self.Si and k == self.Sk and self.t < np.size(self.SourceWavelet)):
-            LaplacianIK -= self.SourceWavelet[self.t]
-
-        U1IK = LaplacianIK*(self.Gvel[k][i]*self.Dt)**2
-        U1IK += 2*self.U1[k][i]-self.U0[k][i]
-
-        return U1IK
-
-    def SetSource(self, i, k, Wavelet):
-        self.Si = i
-        self.Sk = k
-        self.SourceWavelet = Wavelet        
-        self.t = 1
-
-        return
+        d2u_dx2 = (-u0k+16*u1k-30*uik+16*u3k-u4k)/12.0
+        d2u_dz2 = (-ui0+16*ui1-30*uik+16*ui3-ui4)/12.0
+        Uikfuture = (d2u_dx2+d2u_dz2)*(self.Dt*self.Vel[k][i]/self.Ds)**2
+        Uikfuture += 2*self.Ucurrent[k][i]-self.Uprevious[k][i]
+         
+        return Uikfuture
 
 
-    def NextTime(self):
-        """
-        same as before but...
-        for the entire displacement field,
-        after the process U1 will be
-        replaced by U2 ... and so on
-        """
+    def SolveNextTime(self):
 
-        # next time U2
-        U = self.U2
+        try:
+                self.tstep += 1
+        except :
+                self.tstep = 0
+        
+        self.Source(self.tstep)            
 
-        # ignore external part of the grid, zero fixed
-        # 3rd order fixed
-        for i in range(2, self.Nx-2, 1):
-            for k in range(2, self.Nz-2, 1):
-                U[k][i]=self.NextTimeIK(i,k)
+        for k in range(self.Nz):
+            for i in range(self.Nx):
+                self.Ufuture[k][i]=self.NextTime(k,i)
 
         # make the update in the time stack
-        self.U0 = self.U1
-        self.U1 = U        
+        self.Uprevious = self.Ucurrent
+        self.Ucurrent = self.Ufuture        
 
 
-    def MoveForward(self):
-        """
-        t must be set as 1, first time step
-        """
-        
-        self.NextTime()        
-    
-        self.t = self.t + 1
-
-def main():
-    field = W2DWExp(10,10,Dt=0.1)
-    # 10 m/s
-    field.SetVel(0.04)
-    # initial condition at t
-    # t is 2
-    field.UTime[0][5][5]=0.0
-    field.UTime[1][5][5]=1.0
-    py.ion()
-    img = py.imshow(field.UTime[1])
-    py.show()
-
-    for i in range(50):
-        field.next_time_all()
-        img.set_data(field.UTime[1])
-        py.draw()
-#        time.sleep(0.2)
-    return field.UTime[1]
-
-
-
-if __name__ == '__main__':
-    main()

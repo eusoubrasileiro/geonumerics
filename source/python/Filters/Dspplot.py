@@ -13,7 +13,7 @@ These are fuctions to helping on plotting/loading
 you can also use the load, save from pylab
 """
 
-def showfile(filename, opt=None, lwidth=1.5):
+def ShowFile(filename, opt=None, lwidth=1.5):
     """
     Plot the archive filename
     and after use the command show()
@@ -37,7 +37,7 @@ def showfile(filename, opt=None, lwidth=1.5):
     return f
 
 
-def plotfile(filename, opt=None, lwidth=1.5):
+def PlotFile(filename, opt=None, lwidth=1.5):
     """
     Plot the archive filename
     without the command show()
@@ -58,7 +58,7 @@ def plotfile(filename, opt=None, lwidth=1.5):
 
     return f
 
-def plotPowersSpectrumdB(y, dt=0.1):
+def PlotPowersSpectrumdB(y, dt=0.1):
     """
     Try of power spectral density estimation
     not windowed no Welch yet.
@@ -87,7 +87,7 @@ def plotPowersSpectrumdB(y, dt=0.1):
     #ignore Dc and the negative frequencies
     pylab.plot(f[0:numpy.size(f)/2], power[0:numpy.size(f)/2])
 
-def plotfftNabs(y, dt=0.1): # plot the grah of fft (amplitude) of y with command plot
+def PlotFftNAbs(y, dt=0.1): # plot the grah of fft (amplitude) of y with command plot
     """
     Normalized version plot of FFT
     equal abs(FFT) * 2/y.length
@@ -113,7 +113,7 @@ def plotfftNabs(y, dt=0.1): # plot the grah of fft (amplitude) of y with command
     return [f, absyn]
 
 # BIG NOTE THE  GUY bellow plot NOT normalized ABS(FFT)
-def plotfftabs(signal, dt):
+def PlotFftAbs(signal, dt):
     N=numpy.size(signal)
     fund = 1/(N*dt) # freq fundamental, as outras sao multiplas dessa
     f=range(N)
@@ -125,7 +125,7 @@ def plotfftabs(signal, dt):
     pylab.ylabel('Amplitude')
     pylab.xlabel('Frequency (Hz)')
 
-def plotfftphase(signal, dt):
+def PlotFftPhase(signal, dt):
     N=numpy.size(signal)
     fund = 1/(N*dt) # freq fundamental, as outras sao multiplas dessa
     f=range(N)
@@ -136,7 +136,7 @@ def plotfftphase(signal, dt):
     pylab.ylabel('Phase (degrees)')
     pylab.xlabel('Frequency (Hz)')
 
-def plotfftRphase(y, dt=0.1): # plot the grah of fft (fase)  of y with command plot
+def PlotFftRPhase(y, dt=0.1): # plot the grah of fft (fase)  of y with command plot
     """
     plot also just half spectrum (just positive frequencies),
     and from frequencys 1:N/2
@@ -154,7 +154,7 @@ def plotfftRphase(y, dt=0.1): # plot the grah of fft (fase)  of y with command p
     pylab.plot(f[0:numpy.size(f)/2], angyn[0:numpy.size(f)/2])
 
 
-def plotfftNabs_phase(y, dt, ploty=False):
+def PlotFftNAbsPhase(y, dt, ploty=False):
     """
     plot the fft abs spectrum and phase
     if ploty= true also plot the input signal
@@ -163,17 +163,17 @@ def plotfftNabs_phase(y, dt, ploty=False):
         pylab.subplot(3,1,1);
         pylab.plot(y);
         pylab.subplot(3,1,2);
-        plotfftNabs(y, dt);
+        PlotFftNAbs(y, dt);
         pylab.subplot(3,1,3);
-        plotfftRphase(y, dt);
+        PlotFftRPhase(y, dt);
     else:
         pylab.subplot(2,1,1);
-        plotfftNabs(y, dt);
+        PlotFftNAbs(y, dt);
         pylab.subplot(2,1,2);
-        plotfftRphase(y, dt);
+        PlotFftRPhase(y, dt);
 
 
-def plotfftcompare(Sinal, Sinal_Filtered, dt):
+def PlotFftCompare(Sinal, Sinal_Filtered, dt):
     """
     no idea of how to implement this... how to show completeness..?
     just plotting comparisons between a filtered signal and its original version
@@ -184,14 +184,14 @@ def plotfftcompare(Sinal, Sinal_Filtered, dt):
     pylab.plot(Sinal);
     pylab.xlabel('Time')
     pylab.subplot(3, 1, 2)
-    plotfftabs(Sinal_Filtered, dt);
-    plotfftabs(Sinal, dt);
+    PlotFftAbs(Sinal_Filtered, dt);
+    PlotFftAbs(Sinal, dt);
     # I dont understand this phase here anyway..
     pylab.subplot(3, 1, 3)
-    plotfftphase(Sinal_Filtered, dt);
-    plotfftphase(Sinal, dt);
+    PlotFftPhase(Sinal_Filtered, dt);
+    PlotFftPhase(Sinal, dt);
 
-def plotconvprocess(origsignal, paddedsignal, filterKernel, resconv, resconvcutted, dt):
+def PlotConvProcess(origsignal, paddedsignal, filterKernel, resconv, resconvcutted, dt):
     """
     Plot the convolution process, time & frequency
     parameters:
@@ -208,29 +208,29 @@ def plotconvprocess(origsignal, paddedsignal, filterKernel, resconv, resconvcutt
     pylab.plot(origsignal) #  SINAL A Original TEMPO
     pylab.ylabel("signal")
     pylab.subplot(5, 2, 2) # SINAL A Original  MODULO Frequencia
-    plotfftabs(origsignal, dt)
+    PlotFftAbs(origsignal, dt)
     ########################
     pylab.subplot(5, 2, 3)
     pylab.plot(paddedsignal) #  SINAL A FILTRAR samples added at the begin and at the end, to smooth ending after convolution
     pylab.ylabel("signal") # a cost that we want
     pylab.subplot(5, 2, 4) #  SINAL A FILTRAR samples added at the begin and at the end Modulo Frequencia
-    plotfftabs(paddedsignal, dt)
+    PlotFftAbs(paddedsignal, dt)
     ########################
     pylab.subplot(5, 2, 5)
     pylab.plot(filterKernel) # FILTRO TEMPO
     pylab.ylabel("filterKernel")
     pylab.subplot(5, 2, 6) # FILTRO  MODULO Frequencia
-    plotfftabs(filterKernel, dt)
+    PlotFftAbs(filterKernel, dt)
     ########################
     pylab.subplot(5, 2, 7);
     pylab.plot(resconv) # RESULTADO CONVOLUTION  TEMPO
     pylab.ylabel("Convolution")
     pylab.subplot(5, 2, 8) # RESULTADO CONVOLUTION  MODULO Frequencia
-    plotfftabs(resconv, dt)
+    PlotFftAbs(resconv, dt)
     ########################
     pylab.subplot(5, 2, 9)
     pylab.plot(resconvcutted) # RESULTADO CONVOLUTION  CUTTED TEMPO
     pylab.ylabel('Convolution cutted')
     pylab.subplot(5, 2, 10) # RESULTADO CONVOLUTION  CUTTED  MODULO Frequencia
-    plotfftabs(resconvcutted, dt)
+    PlotFftAbs(resconvcutted, dt)
     ###########################

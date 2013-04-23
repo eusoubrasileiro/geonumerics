@@ -1,8 +1,7 @@
 #!/usr/bin
 
-import gc, sys, copy
+import sys, copy
 import numpy as np
-import scipy.linalg as ln
 from Wavelet import Triangle
 import time
 
@@ -158,7 +157,7 @@ class BaseWave2DField(object):
             sys.stdout.flush()        
         sys.stdout.write(" done! \n")
         final = time.clock()
-        sys.stdout.write("solving time (s) %.1f" %(initial-time.clock()))
+        sys.stdout.write("solving time (s) %.1f" %(final-initial))
                 
         return movie        
        
