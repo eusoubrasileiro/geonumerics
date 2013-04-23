@@ -1,27 +1,6 @@
 import numpy
 import pylab
 
-"""
-To play use SincLowPass()
-to create the filter kernel 
-and ConvFft() to apply it
-
-Eg.
-
-lowpass.ConvFft(Sd, lowpass.SincLowPass(1001, 0.5, 0.1) )
-
-filters the Sd array using a LowPass filter of 1001 points
-with a cut-off frequency of 0.5 Hz and sample rate of 0.1 s
-
-You can also use a hanning taper window 
-before applying the filter
-
-Eg.
-fkernel = lowpass.SincLowPass(1001, 0.5, 0.1) 
-fkernel_tapered = Fkernel*WindowHann(np.size(fkernel))
-...
-
-"""
 
 def SincLowPass(N, fc, dt):
     """
@@ -73,13 +52,13 @@ def WindowHann(N):
     """
     return numpy.sin(numpy.arange(0, N, 1)*numpy.pi/(N-1));
 
-def _NextOdd(a):
+def NextOdd(a):
     if(a%2==0):
         return a+1;
     else:
         return a;
 
-def _FilterSize(RTbtw=0.2, Fc=125, dt=0.001):
+def FilterSize(RTbtw=0.2, Fc=125, dt=0.001):
     """
     Gives the number of samples (odd number) needed to sample our filter operator
     based on:
@@ -91,7 +70,7 @@ def _FilterSize(RTbtw=0.2, Fc=125, dt=0.001):
     a RTbtw = 20% is a reasonable value for a non distorded frequency response
     """
     Fs = 2/(RTbtw*Fc*dt);
-    return _NextOdd(Fs.__int__());
+    return NextOdd(Fs.__int__());
 
 def _ConvFft(signal, FilterKernel): 
     """

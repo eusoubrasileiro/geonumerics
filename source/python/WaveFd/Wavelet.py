@@ -1,55 +1,48 @@
 #!/usr/bin/python
-# import filters.py
-
 
 """
-MAKE SURE THE IPYTHON HAS LOADED THE LAST
-VERSION THAT YOU ARE WORKING!!!!
-A LOT OF TIME YOU LOST BECAUSE OF THAT!!!!!
-"""
-#backend = 'gtk'
-#import matplotlib
-#matplotlib.use(backend)
 
+Collection of source functions or so called Wavelets.
+Remember that nyquist frequency is 1/(2 sample rate)
+
+"""
 import sys
 sys.path.append('../../python');
-# or to not windows guys
-# sys.path.append(os.path.join('..','log','python'))
-# the above to be able to load the modules bellow
 
-import pylab as py
 import numpy as np
-from Filters import SincLowPass as _SincWavelet
+from Filters import SincLowPass
 from Filters import WindowHann
 
-def SincWavelet(N=127, Fc=40, dt=0.0005, plot=False):
+def SincWavelet(n=127, fc=40, dt=0.0005):
     """   
-    N is number of samples for the wavelet
-    fc is the F maximum frequency
-    dt is the sample rate
-    Sample the Box Sinc filter simetrically around the zero
-    apply hanning window
+    Sinc Wavelet source.
+    Sample a Sinc Box filter simetrically around the zero
+    applying a hanning window
+    
+    n  : number of samples for the wavelet
+    fc : maximum frequency
+    dt : sample rate
     """
-    print "total wavelet time : %.1f miliseconds" % (dt*N*1000)
-    wavelet = _SincWavelet(N, Fc, dt)
-    wavelet = wavelet*WindowHann(N)
+    print "total wavelet time : %.1f miliseconds" % (dt*n*1000)
+    wavelet = SincLowPass(n, fc, dt)
+    wavelet = wavelet*WindowHann(n)
     #Normalize the maximum amplitude to 1
     wavelet = wavelet/np.max(wavelet)
     return wavelet
 
-def Triangle(N=None, Fc=40.0, Dt=0.001):
+def Triangle(n=None, fc=40.0, dt=0.001):
     """
-    Triangle Wave one Period
-    Defined by 1 or 2:
-    1) N (half length)
-    2) 
-        a) Desired Frequency Fc
-        b) Sample Rate Dt
-    """
-    if(N==None):
-        N=int(1/float(Fc*Dt))        
+    Triangle Wave one Period.
+    Defined by size or by frequency and sample rate
     
-    t = np.arange(0+1.0/N, 1, 1.0/N)
+    n  : half length of triangle    
+    fc : maximum desired frequency
+    dt : sample rate
+    """
+    if(n==None):
+        n=int(1/float(fc*dt))        
+    
+    t = np.arange(0+1.0/n, 1, 1.0/n)
     y = 1-t
     y = np.append(y, 0.0)
     y_ = 1-t[::-1]
@@ -58,21 +51,38 @@ def Triangle(N=None, Fc=40.0, Dt=0.001):
     return np.append(y_, np.append(1, y))
 
 
-def RickerWavelet(sigma, t):
-    wv = 2*np.sqrt(3*sigma)*np.pi**0.25
-    return wv* (1-(t/sigma)**2)*np.exp(-0.5*(t/sigma)**2) 
+#TODO: finish
+# def RickerWavelet(fc, dt):
+#     """
+#     Ricker Wavelet    
+#     A = (1-2 \pi^2 f^2 t^2) e^{-\pi^2 f^2 t^2}
+#     Side lobes :
+#     \pm \frac{\sqrt{3/2}}{f\pi}
+#      
+#     fc : maximum desired frequency
+#     dt : sample rate
+#     """
+#     
+#     n=int(1/float(fc*dt))
+#     period=1.0/fc    
+#     t = np.arange(-n, 1, 1.0/n)
+#     ricker = (1-2*(np.pi*fc*t)**2)*np.exp(-(np.pi*fc*t)**2) 
+#     return  ricker/np.max(ricker)
 
 
-def LinearSin(Fc=40.0, dt=None, plot=False):
+def LinearSin(fc=40.0, dt=None):
     """
     Linear decreasing one period sin(2pi*f) 
+    
+    fc : maximum desired frequency
+    dt : sample rate
     """
     # frequency of niquest limit
-    if ( dt > 1/(2.0*Fc) or dt == None):
-        dt = 1/(2.0*Fc) 
+    if ( dt > 1/(2.0*fc) or dt == None):
+        dt = 1/(2.0*fc) 
     
-    t = np.arange(0, 1.0/Fc, dt)
-    wavelet = np.sin(2.0*np.pi*Fc*t)*(-Fc*t+1.0)
+    t = np.arange(0, 1.0/fc, dt)
+    wavelet = np.sin(2.0*np.pi*fc*t)*(-fc*t+1.0)
     
     print "total wavelet time : %.1f miliseconds" % (dt*np.size(wavelet)*1000)
     #normalize to 1 the maximum amplitude
@@ -82,48 +92,12 @@ def LinearSin(Fc=40.0, dt=None, plot=False):
     return wavelet
 
 
-def GaussCos(Fc=40.0, dt=None, plot=False):
-    """
-    TODO
-    Linear decreasing one period cos... 
-    """    
-    t = np.arange(-1.0/Fc, 0, dt)
-    wavelet = np.cos(2.0*np.pi*Fc*t)*(Fc*t+1.0)
-    t = np.arange(0, 1.0/Fc, dt)
-    wavelet = np.append(wavelet, np.cos(2.0*np.pi*Fc*t)*(-Fc*t+1.0) )
-
-
-class SourceWavelet:
-    """
-    Represents the source wavelet, characteristic of the source
-    creating the perturbation wave field
-    """
-    def __init__(self, Fc=40.0, Type=None):
-        """
-        Fc - central frequency
-        
-        Type can be:
-        LinearSin - 1) Linear decreasing one period sin(2pi*f) 
-        """
-        
-        self.Fc = Fc
-
-        if ( Type == None):            
-                self._Type = SincWavelet
-        else:
-            if ( Type == None):
-                self._Type = LinearSin
-        
-    def Samples(self, dt):
-        """
-        get the values itself based on the predefined Fc
-        and the passed dt
-        """
-
-        if( self._Type == SincWavelet):
-            s = self._Type(1/(self.Fc*dt), Fc=self.Fc, dt=dt)
-        else:
-            s = self._Type(Fc=self.Fc,dt=dt)
-
-        return s
-
+# def GaussCos(Fc=40.0, dt=None, plot=False):
+#     """
+#     TODO
+#     Linear decreasing one period cos... 
+#     """    
+#     t = np.arange(-1.0/Fc, 0, dt)
+#     wavelet = np.cos(2.0*np.pi*Fc*t)*(Fc*t+1.0)
+#     t = np.arange(0, 1.0/Fc, dt)
+#     wavelet = np.append(wavelet, np.cos(2.0*np.pi*Fc*t)*(-Fc*t+1.0) )

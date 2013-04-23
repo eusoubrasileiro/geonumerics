@@ -1,35 +1,15 @@
-import Wavelet
-import Fourier2D
-import Filters
+import sys
+import numpy
+import pylab
+from pylab import cm 
+sys.path.append('../../python');
+from WaveFd import Exp2DWave
+from WaveFd import Triangle
 
-"""
-to test the derivatives based on polynomial interpolations...
-"""
+velocity = numpy.zeros([100, 100]) + 2500
+wavelet = Triangle(fc=40, dt=0.0005)
+w2w = Exp2DWave.Exp2DWave(100, 100, 5, 0.0005, velocity, 50, 50, 1000, 1, wavelet)
+movie = w2w.Simulate()
+numpy.shape(movie)
 
-def main():
-    wv = Wavelet.SourceWavelet(20.0)
-    wf = Wave2D.WaveField2D(N=256, M=256, Wavelet=wv)
-    wf.Sj=50
-    wf.Si=50
-    wf.SetVe(200.0)
-    wf.SetRh(210.0)
-    wf.t = 1
-
-def smallscaleTest():
-    """
-works with the Wave2DinterpZero but with a very strong dispersion
-    """
-    times = zeros([200, 50, 50])
-    wv = Wavelet.SourceWavelet(30.0)
-    wf = Wave2D.WaveField2D(N=50, M=50, Wavelet=wv)
-    wf.Sj=4
-    wf.Si=4
-    wf.SetVe(2000.0)
-    wf.SetRh(2100.0)
-    wf.Ds=20
-    wf.Dt=0.005
-    wf.t = 1
-    wf._GetWavelet()
-
-if __name__ == '__main__':
-    main()
+pylab.imshow(movie[808], cmap=cm.Greys_r, vmin=-0.005, vmax=0.005)
