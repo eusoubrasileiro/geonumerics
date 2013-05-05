@@ -34,11 +34,11 @@ def PeriodicNoise(N=200, dt=0.05):
     return y;
 
 
-s = PeriodicNoise(200, 0.05);    
+s = PeriodicNoise(200, 0.05)    
 print " Input number of samples %d" % numpy.size(s)
 #filterK depends on the sample rate and the transition bandwidth we want
 # we want 20% its a reasonable value
-Nf = FilterSize(RTbtw=0.2, Fc=3, dt=0.05);
+Nf = FilterSize(3.0, 0.05)
 print " Filter number of samples %d" % Nf
-filterK = SincLowPass(Nf, 3, 0.05);
-res  = ConvFft(s, filterK);
+filterK = SincLowPass(Nf, 3, 0.05)
+res  = ConvFft(s, filterK)
