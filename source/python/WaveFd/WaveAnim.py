@@ -1,28 +1,25 @@
-#!/usr/bin/python
-
 import numpy as np
 import pylab as py
 import sys
 from os import system
 from matplotlib import cm
 
-def ClearTempImages(name, imfmt):
+def _ClearTempImages(name, imfmt):
     try:
         system("rm "+name+"*."+imfmt)
     except:
         pass
 
 def AnimFromPng(name, gif=True, fps=15):
-    """
-    Converts a collection of image files *.png format into an avi or gif file.
-    Requires ffmpeg *.avi.
-    Requires ImageMagick *.gif.
+    r"""
+    Converts a collection of image files .png format into an avi or gif file.
+    Requires ffmpeg .avi.
+    Requires ImageMagick .gif.
 
-    name  :  file name begin of the image files *.png
-             also the name of the output *avi file
-    gif   :  if False create an *.avi file instead of a *.gif
-    fps   :  frames per second
-
+    * name  :  file name begin of the image files .png
+      also the name of the output .avi file
+    * gif   :  if False create an .avi file instead of a .gif
+    * fps   :  frames per second
     """
     if(gif):
         imgconvert = "convert " + "-delay " + str(int(1000/fps))
@@ -36,14 +33,14 @@ def AnimFromPng(name, gif=True, fps=15):
 
 
 def Wave1DPlot(ufield, extent, vel=None):
-    """
+    r"""
     Draw a 1D pressure function at some instant of time.
     As background is shown velocity field.
-    Note: same dimension as ufield.
+    Same dimension as ufield.
 
-    ufield    : pressure function at an instant of time
-    extent    : (xmin, xmax, ymin, ymax) imshow limits
-    vel       : 1d background velocity function
+    * ufield    : pressure function at an instant of time
+    * extent    : (xmin, xmax, ymin, ymax) imshow limits
+    * vel       : 1d background velocity function
     """
     # plot curve
     py.hold(True)
@@ -61,17 +58,17 @@ def Wave1DPlot(ufield, extent, vel=None):
 
 
 def Wave1DAnim(snapshots, ds, dt, vel=None, filename='wave1danim', anim="gif", fps=10):
-    """
+    r"""
     Create an animation file from a matrix resulting from a simulation of a 1d wave field.
     Creates many intermediate files to achieve that, uses ImageMagick
 
-    snapshots : is a 2d matrix [time][nx] - pressure field
-    ds        : space equal in x axis
-    dt        : time increment between simulation steps
-    vel       : 1d background velocity field
-    filename  : file name for the animation file
-    anim      : animation type (gif or avi)
-    fps       : frames per second
+    * snapshots : is a 2d matrix [time][nx] - pressure field
+    * ds        : space equal in x axis
+    * dt        : time increment between simulation steps
+    * vel       : 1d background velocity field
+    * filename  : file name for the animation file
+    * anim      : animation type (gif or avi)
+    * fps       : frames per second
     """
 
     py.ion()
@@ -99,7 +96,7 @@ def Wave1DAnim(snapshots, ds, dt, vel=None, filename='wave1danim', anim="gif", f
     # not working?
     # verticalalignment='top',
     # horizontalalignment='right',
-    ClearTempImages(filename, "png")   # clear any previous existing
+    _ClearTempImages(filename, "png")   # clear any previous existing
     for t in range(maxt):
         Wave1DPlot(snapshots[t], extent, vel)
         # set axis ranges
@@ -120,20 +117,20 @@ def Wave1DAnim(snapshots, ds, dt, vel=None, filename='wave1danim', anim="gif", f
         AnimFromPng(filename, fps=fps)
     else :
         AnimFromPng(filename, False, fps)
-    ClearTempImages(filename, "png")
+    _ClearTempImages(filename, "png")
     #clear after creating new files
 
 
 def Wave2DShow(ufield, vel, extent, vmin=None, vmax=None):
-    """
+    r"""
     Show a 2D pressure field at some instant of time.
     As background is shown velocity field.
-    Note: same dimension as ufield.
+    Same dimension as ufield.
 
-    ufield    : 2d pressure field at an instant of time
-    vel       : 2d background velocity field
-    extent    : (xmin, xmax, ymax, ymin) imshow limits
-    vmin/vmax : vmin/vmax of imshow
+    * ufield    : 2d pressure field at an instant of time
+    * vel       : 2d background velocity field
+    * extent    : (xmin, xmax, ymax, ymin) imshow limits
+    * vmin/vmax : vmin/vmax of imshow
     """
     # velocity / pressure
     py.hold(True)
@@ -148,21 +145,21 @@ def Wave2DShow(ufield, vel, extent, vmin=None, vmax=None):
 
 
 def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=None, vmax=None, anim="avi", fps=15):
-    """
+    r"""
     Create an animation file from a matrix resulting from a simulation of a 2d wave field.
     Creates many intermediate files to achieve that, uses ImageMagick.
-    Note: z is downwards.
+    Z is downward.
 
-    snapshots : is a 3d matrix [time][nz][nx] - pressure field
-    ds        : space equal in x/y axis
-    dt        : time increment between simulation steps
-    vel       : 2d background velocity field
-    filename  : file name for the animation file
-    anim      : animation type (gif or avi)
-    fps       : frames per second
-    norm      : scale the values getting the general max and min (vmax/vmin)
-    vmin      : global minimum of snapshots
-    vmax      : global maximum of snapshots
+    * snapshots : is a 3d matrix [time][nz][nx] - pressure field
+    * ds        : space equal in x/y axis
+    * dt        : time increment between simulation steps
+    * vel       : 2d background velocity field
+    * filename  : file name for the animation file
+    * anim      : animation type (gif or avi)
+    * fps       : frames per second
+    * norm      : scale the values getting the general max and min (vmax/vmin)
+    * vmin      : global minimum of snapshots
+    * vmax      : global maximum of snapshots
     """
     py.ion()
     if(norm == True):
@@ -194,7 +191,7 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
     # not working?
     # verticalalignment='top',
     # horizontalalignment='right'
-    ClearTempImages(filename, "png") # clear any previous existing
+    _ClearTempImages(filename, "png") # clear any previous existing
     for t in range(maxt):
         Wave2DShow(snapshots[t], vel, extent, vmin, vmax)
         py.hold(True)
@@ -218,7 +215,7 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
         AnimFromPng(filename, fps=fps)
     else :
         AnimFromPng(filename, False, fps)
-    ClearTempImages(filename, "png")
+    _ClearTempImages(filename, "png")
     #clear after creating new files
 
 

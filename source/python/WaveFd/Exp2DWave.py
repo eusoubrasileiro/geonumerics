@@ -1,16 +1,19 @@
-#!/usr/bin/python
-
 import numpy as np
-from BaseWave2DField import BaseWave2DField
+from BaseWaveField import BaseWave2DField
 
 class Exp2DWave(BaseWave2DField):
-    """
+    r"""
     Simple explicit wave equation constant density accoustic, 
     Finite differences:
-    +4rd error order centered in space
-    +1st error order backward in time
-    Convergence?? dt must be very small??
-    Very Slow : try using cython for loop said to be 8x faster!!!
+
+    * 4th error order centered in space
+    * 1st error order backward in time
+
+    .. todo::
+
+     * Convergence??Dt must be very small?? how small?? to calculate!!
+     * Very Slow : try using cython for loop said to be 8x faster!!!
+
     """
     def __init__(self,
                 nx, 
@@ -23,20 +26,20 @@ class Exp2DWave(BaseWave2DField):
                 maxiter,
                 nrec=5,
                 wavelet=None):
-        """
+        r"""
         Initialize a new wave equation field explicit centered differences time
         and spline for space.
-        
-        nx       : number of discretization in x
-        nz       : number of discretization in z
-        ds       : dx=dz=ds grid spacing 
-        dt       : time step - e.g. seconds
-        velocity : 2d velocity distribution
-        sx/sz    : source wavelet position in indexes (i, k)
-        maxiter  : total iterations
-        nrec     : recording interval 1 equals time step 
-        wavelet  : source wavelet function applied at the position (sx, sz)
-                   must have sample rate equal to dt
+
+        * nx       : number of discretization in x
+        * nz       : number of discretization in z
+        * ds       : dx=dz=ds grid spacing 
+        * dt       : time step - e.g. seconds
+        * velocity : 2d velocity distribution
+        * sx/sz    : source wavelet position in indexes (i, k)
+        * maxiter  : total iterations
+        * nrec     : recording interval 1 equals time step 
+        * wavelet  : source wavelet function applied at the position (sx, sz)
+          must have sample rate equal to dt
         """
         # creates the constant density part first
         super(Exp2DWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, nrec, wavelet)
@@ -93,6 +96,6 @@ class Exp2DWave(BaseWave2DField):
 
         # make the update in the time stack
         self.Uprevious = self.Ucurrent
-        self.Ucurrent = self.Ufuture        
-
-
+        self.Ucurrent = self.Ufuture
+    
+        return self.Ufuture

@@ -51,25 +51,29 @@ def ConvFft(signal, filterkernel):
     return signal[:ssor];
 
 
-def FilterSize(RTbtw=0.2, Fc=125, dt=0.001):
-    """
-    Gives the number of samples (odd number) needed to sample our filter operator
-    based on:
-    1) the relative transition bandwidth RTbtw WE WANT
-    (Transition band size divide by cut-off frequency)
-    2) Filter cut-off frequency
-    3) Sample rate that's gonna be used to sample the filter
-    This aproximation is valid for Sinc Filters.
-    a RTbtw = 20% is a reasonable value for a non distorded frequency response
-    """
-    Fs = 2/(RTbtw*Fc*dt);
-    return _NextOdd(Fs.__int__());
+def FilterSize(fc, dt, rtbtw=0.2):
+    r"""
+    Calculates number of samples needed to sample a filter operator based on:
 
-def _NextOdd(a):
-    if(a%2==0):
-        return a+1;
-    else:
-        return a;
+    * fc      : filter maximum frequency
+    * dt      : that's gonna be used to sample the filter
+    * rbtw    : relative transition bandwidth rtbtw desired
+        Transition band size divide by cut-off frequency
+
+    This aproximation is valid for Sinc Filters as 20% is a reasonable value.
+
+    .. todo::
+        *Review coz no formula on reference!!*
+
+    Reference:
+        The Scientist and Engineer's Guide to Digital Signal Processing 
+        By Steven W. Smith, Ph.D. (Chapter 16 - Windowed-Sinc Filters / Designing the Filter)
+    """
+    fsize = int(2.0/(rtbtw*fc*dt))
+    if(fsize%2==0):
+        fsize+=1
+    return fsize
+
 
 def _Norm(signal):
     """

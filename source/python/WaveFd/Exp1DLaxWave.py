@@ -1,12 +1,3 @@
-#!/usr/bin
-############
-#
-# TO DO :
-# a) Convergence criteria that I can't understand why is not enough
-# using the current definition 
-# b) Boundary Conditions are ok?
-# c) Source definition is okay?
-
 
 
 import numpy as np
