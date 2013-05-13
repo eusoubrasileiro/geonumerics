@@ -18,7 +18,7 @@ class Imp1DLuWave(BaseWave1DField):
                 velocity,
                 sx,
                 maxiter,
-                nrec=5,
+                nrec=1,
                 wavelet=None):
         r"""
         Initialize a new wave equation field
@@ -53,11 +53,11 @@ class Imp1DLuWave(BaseWave1DField):
         # ignores external part of the grid = locked boundary
         # ln go through all the cells in the grid Ut
         # each cell gives one equation (line)
-        for Ln in range(0, self.Nx, 1): 
+        for Ln in range(0, self.Nx): 
             # 1.0*u(x-1) + gama(x)*u(x) + 1.0*u(x+1) 
             # turn the indices to the one of original matrix
             i = Ln
-            
+            # just major diagonal
             self.mUt[i][i] = -2.0-(self.Ds/(self.Dt*self.Vel[i]))**2
 
             if(i-1 >= 0): # u(x-1) inside grid in I
@@ -75,14 +75,12 @@ class Imp1DLuWave(BaseWave1DField):
         #independent term, where the previous times goes in
         self.vId = np.zeros([self.Nx])
         # fill the independent vector
-        for Ln in range(0, self.Nx, 1): 
-            # turn the indices to the one of original matrix
-            i = Ln
-            
+        for Ln in range(0, self.Nx): 
+            # turn the indices to the one of original matrix            
             # -2 u(x,t-1) + u(x,t-2)
-            self.vId[Ln] = -2*self.Ucurrent[i]+self.Uprevious[i]
+            self.vId[Ln] = -2*self.Ucurrent[Ln]+self.Uprevious[Ln]
             # / (Ds/(Dt*Vel(x,z)))**2
-            self.vId[Ln] *= (self.Ds/(self.Dt*self.Vel[i]))**2
+            self.vId[Ln] *= (self.Ds/(self.Dt*self.Vel[Ln]))**2
 
         return self.vId
 
