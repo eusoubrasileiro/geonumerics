@@ -1,4 +1,7 @@
-
+r"""
+Need review, to base class usage and new wavelet classes
+include also convergence criteria
+"""
 
 import numpy as np
 import time        

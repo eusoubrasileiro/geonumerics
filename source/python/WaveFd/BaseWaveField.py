@@ -284,7 +284,7 @@ class BaseWave1DField(object):
             return
                     
         # set at the current time field   
-        self.Ucurrent[self.Sk][self.Si] = self.Wavelet[tstep]
+        self.Ucurrent[self.Si] = self.Wavelet[tstep]
         
         
     def SolveNextTime(self):
