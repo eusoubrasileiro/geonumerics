@@ -1,4 +1,10 @@
-#!/usr/bin/python
+r"""
+
+Manipulation utilities and others
+
+"""
+import Image
+import numpy as np
 
 def Traces2DFromSimulation(simulation, ds):
     """
@@ -11,3 +17,10 @@ def Traces2DFromSimulation(simulation, ds):
     fps   :  frames per second
 
     """
+
+def LoadPicture( filename ):
+    img = Image.open( filename )
+    img.load()
+    data = np.asarray( img, dtype="float32" )
+    return data
+
