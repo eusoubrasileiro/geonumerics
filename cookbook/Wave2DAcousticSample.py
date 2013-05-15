@@ -7,7 +7,7 @@ after save it as an avi animation
 import sys
 sys.path.append('../source/python');
 
-from WaveFd.Imp2DLuWave import Imp2DLuWave
+from WaveFd.Imp2DLuWave import Imp2DLuSparseWave
 from WaveFd import WaveAnim
 from WaveFd.Wavelet import Triangle
 import numpy
@@ -16,7 +16,7 @@ velocity[0:25] = 3000.0
 velocity[25:100] = 2500.0
 samplerate=0.001
 triangle = Triangle(90.0, samplerate)
-wd2d = Imp2DLuWave(100, 50, 10, samplerate, velocity, 0, 0, 700, wavelet=triangle)
+wd2d = Imp2DLuSparseWave(100, 50, 10, samplerate, velocity, 0, 0, 700, wavelet=triangle)
 movie= wd2d.Simulate()
 del wd2d # huge memory usage linear system
 movie = numpy.save('Imp2DLuWave_100x50x700.npy', movie) # just for preservation save it also
