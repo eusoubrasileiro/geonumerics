@@ -1,5 +1,6 @@
 import numpy as np
 from BaseWaveField import BaseWave2DField
+from WaveFd.Utils import centered2ndfiniteweight4th
 
 class Exp2DWave(BaseWave2DField):
     r"""
@@ -10,10 +11,18 @@ class Exp2DWave(BaseWave2DField):
     * 1st error order backward in time
 
     .. todo::
-
-     * Convergence??Dt must be very small?? how small?? to calculate!!
-     * Very Slow : try using cython for loop said to be 8x faster!!!
-
+    
+    * Very Slow : try using cython for loop said to be 8x faster!!!
+    Something is wrong in the implementation, the convergence criteria is
+    correc by Jing-Bo Chen or something else is wrong.
+    
+    Convergence
+     
+    .. math:
+     
+         \Delta t \leq \frac{2 \Delta s}{ V \sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}}
+    
+    Where w_a are the centered differences weights
     """
     def __init__(self,
                 nx, 
@@ -24,11 +33,10 @@ class Exp2DWave(BaseWave2DField):
                 sx,
                 sz,
                 maxiter,
-                nrec=5,
+                nrec=1,
                 wavelet=None):
         r"""
         Initialize a new wave equation field explicit centered differences time
-        and spline for space.
 
         * nx       : number of discretization in x
         * nz       : number of discretization in z
@@ -46,8 +54,37 @@ class Exp2DWave(BaseWave2DField):
         # backward/forward differences in time, add previous time
         self.Uprevious = np.zeros([self.Nz, self.Nx])
         
+        neededt = self.Stability()
+        
+        if(dt > neededt):
+            print "for stability the time step should be smaller than", neededt
+            return 
 
-    def NextTime(self, i, k):
+    def Stability(self):
+        r"""
+        Using Von neuman stability analysis
+        
+        .. math:
+     
+         \Delta t \leq \frac{2 \Delta s}{ V \sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}}
+    
+        Where w_a are the centered differences weights. And V is the maximum V. 
+        
+        * Returns maximum value allowed for \Delta t
+        """
+        
+        vmax = 0.0
+        
+        for k in range(self.Nz):
+            for j in range(self.Nx):
+                if ( vmax < self.Vel[k][j]):
+                    vmax =  self.Vel[k][j]
+        
+        sumweights = np.abs(centered2ndfiniteweight4th).sum()
+        
+        return 2*self.Ds/(vmax*np.sqrt(sumweights))
+
+    def NextTime(self, k, i):
 
         u = self.Ucurrent
         # u0k u1k*uik*u3k u4k     
@@ -91,8 +128,8 @@ class Exp2DWave(BaseWave2DField):
         self.Source(self.tstep)            
 
         for k in range(self.Nz):
-            for i in range(self.Nx):
-                self.Ufuture[k][i]=self.NextTime(k,i)
+            for j in range(self.Nx):
+                self.Ufuture[k][j] = self.NextTime(k, j)
 
         # make the update in the time stack
         self.Uprevious = self.Ucurrent

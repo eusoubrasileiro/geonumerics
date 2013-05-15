@@ -182,7 +182,8 @@ class Imp2DLuSparseWave(BaseWave2DField):
     .. note:
 
         Using Pysparse Lu decomposition and factor. Huge memory drop.
-        Better by far!!
+        Eg. for a 200x300 grid, memory usage for the linear system is 0.0083%
+        compared with the Imp2DLuWave matrix above. Or ~12*10^3 smaller  
 
     """
     def __init__(self,
@@ -245,8 +246,8 @@ class Imp2DLuSparseWave(BaseWave2DField):
         Depends on Velocity field and Gamma
         """
         # assembly matrix of linear system
-        # using pysparse optimized matrix non zero elements 5*M-8         
-        self.mUt = spmatrix.ll_mat(self.Nz*self.Nx, self.Nz*self.Nx, 5*self.Nz*self.Nx-8)
+        # using pysparse optimized matrix non zero elements 5*M         
+        self.mUt = spmatrix.ll_mat(self.Nz*self.Nx, self.Nz*self.Nx, 5*self.Nz*self.Nx-2*self.Nz-2*self.Nx)
 
         for Ln in range(0, self.Nz*self.Nx, 1):
             # 1.0*u(x-1,z) + Gamma(x,z)*u(x,z) + 1.0*u(x+1,z) + 1.0*u(x,z-1) + 1.0*u(x,z+1)
