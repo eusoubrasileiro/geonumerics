@@ -1,0 +1,43 @@
+\documentclass[legalpaper, 12pt]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\begin{document}
+
+
+The solution in the finite differences domain can be expressed as a Fourier series.
+The domain is defined as $  a <= x <= b $ and $ L = b-a $. 
+An individual Fourier component $s$ for a mesh point $ x = x_j = a + j\Delta x $ can be written as:
+
+\begin{eqnarray}
+A_s e^{i\frac{2\pi s x}{L}} &=& A_s e^{i\frac{2\pi s (a+j\Delta x)}{L}} \nonumber \\
+&=& A_s e^{i K_s a} e^{i K_s j \Delta x }
+\end{eqnarray}
+Where $K_s = \frac{2 \pi s}{L} $
+
+
+Considering the error also respects the difference schema and can be expressed as:
+
+\[ \epsilon_j^n = e^{an\Delta t} e^{iKj\Delta s} \] 
+
+
+
+
+2D Implicit
+
+
+\begin{equation}
+U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}^n}{\Delta s} \right) ^2 \left(  U_{j+1k}^{n+1} - 4 U_{jk}^{n+1} + U_{jk+1}^{n+1} + U_{j-1k}^{n+1} + U_{jk-1}^{n+1}  \right) + 2 U_{jk}^{n} - U_{jk}^{n-1}
+\end{equation}
+
+
+2D Explicit
+
+\begin{equation}
+U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}^n}{\Delta s} \right) ^2 \left(  U_{j+1k}^n - 4 U_{jk}^n + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n  \right) + 2 U_{jk}^{n} - U_{jk}^{n-1}
+\end{equation}
+
+\end{document}

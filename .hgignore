@@ -6,3 +6,11 @@ syntax: glob
 *.nja
 .project
 .pydevproject
+doc/build*
+*.gz
+*.snm
+*.nav
+*.out
+*.aux
+*.log
+*.toc

@@ -1,0 +1,103 @@
+\documentclass[legalpaper, 12pt]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\begin{document}
+
+The wave equation 1D with constant density is defined as:
+
+\begin{equation}
+\frac{\partial^2 U}{\partial t ^2} = V^2 \frac{\partial^2 U}{\partial x ^2}
+\label{1}
+\end{equation}
+
+And the implicit difference schema:
+
+
+\begin{equation}
+U_j^{n+1}  =  \left( \frac{\Delta t  V_j^n}{\Delta s} \right) ^2 \left(  U_{j+1}^{n+1} - 2 U_j^{n+1} + U_{j-1}^{n+1}  \right) + 2 U_j^n - U_j^{n-1}
+\label{2}
+\end{equation}
+
+Where $\Delta x = \Delta s $.
+
+\textbf{Von Newman stability analysis.}
+\\
+
+Since $ u(x,t) = e^{i(wt+kx)} $ is a solution for (\ref{1}) the discrete schema can be written as:
+
+\begin{eqnarray}
+u(x_j,t_n) &=& e^{i(wt_n+kx_j)} \nonumber \\
+&=& e^{iwn\Delta t} e^{ikj\Delta s} \nonumber \\
+&=& \epsilon^n e^{ikj\Delta s}
+\label{3}
+\end{eqnarray}
+
+
+Where $\epsilon = e^{iw \Delta t} $ and $ i = \sqrt{-1} $ . 
+To maintain stability we should make sure that $ \epsilon \leq 1 $ not growing exponentially with increasing time steps. So applying (\ref{3}) in (\ref{2}) we can analyse the growth.
+
+\begin{multline}
+ U_j^{n+1}  =  \left( \frac{\Delta t  V_j^n}{\Delta s} \right) ^2 \left(  U_{j+1}^{n+1} - 2 U_j^{n+1} + U_{j-1}^{n+1}  \right) + 2 U_j^n - U_j^{n-1} \\
+\epsilon^{n+1} e^{ikj\Delta s}  =  r^2 \left(  \epsilon^{n+1} e^{ik(j+1)\Delta s}  - 2 \epsilon^{n+1} e^{ikj\Delta s} + \epsilon^{n+1} e^{ik(j-1)\Delta s}  \right) \\ 
++ 2 \epsilon^n e^{ikj\Delta s}  - \epsilon^{n-1} e^{ikj\Delta s} \\
+ 1 = r^2 (e^{ik\Delta s} -2 + e^{-ik\Delta s}) + 2 \epsilon^{-1} - \epsilon^{-2} \\
+\epsilon^{-2} - 2 \epsilon^{-1} -  r^2 (e^{ik\Delta s} -2 + e^{-ik\Delta s}) + 1 = 0  \\
+\epsilon^{-2} - 2 \epsilon^{-1} + 4 r^2 \sin^2 \left( k \Delta s / 2 \right) + 1 = 0   
+ \label{4}
+\end{multline}
+
+Where $ r = \left( \frac{\Delta t  V_j^n}{\Delta s} \right) $
+
+At equation (\ref{4}) we can substitute $ \phi = \epsilon^{-1} $ turning it to a second degree bellow:
+
+\begin{eqnarray}
+\phi^2 - 2 \phi +4 r^2 \sin^2 \left(k\Delta s/2 \right) +1 = 0  \nonumber \\
+\phi^2 - 2 \phi + c = 0  \nonumber
+\end{eqnarray}
+
+With:
+	$$ c = 1 +4 r^2 \sin^2 \left(k\Delta s/2 \right) $$
+
+\newpage
+
+Has roots $ \phi^{'} $ and $ \phi^{''} $ as bellow. Replacing $c$ also.
+
+\begin{eqnarray}
+ &=& \frac{2 \pm \sqrt{4 - 4c}}{2} = 1 \pm \sqrt{1-c} \nonumber \\
+ &=& 1 \pm \sqrt{-4 r^2 \sin^2 \left(k\Delta s/2 \right) } \nonumber \\
+ &=& 1 \pm i \ 2 r \sin \left(k\Delta s/2 \right)  \nonumber \\
+ \phi^{'} &=& 1 + i \ 2 r \sin \left(k\Delta s/2 \right)   \nonumber \\
+ \phi^{''} &=& 1 - i \ 2 r \sin \left(k\Delta s/2 \right)   \nonumber
+\end{eqnarray}
+
+Analyzing the modulus, since $  \phi^{'} $ and $  \phi^{''} $ are conjugate pairs of the same complex number the modulus is the same for both.
+We get:
+
+$$ \| \phi \| = \| \phi^{'} \| = \| \phi^{''} \| = \sqrt{1+ 4 r^2 \sin ^2 \left(k\Delta s/2 \right)}$$
+\\
+Going back to $\epsilon$ and getting its modulus we get :
+
+\begin{eqnarray}
+ \| \epsilon^{'} \| &=& \| \epsilon^{''} \| = \frac{1}{\| \phi  \|} \nonumber \\
+ &=& \frac{1}{\sqrt{1+ 4 r^2 \sin ^2 \left(k\Delta s/2 \right)}} 
+ \label{5}
+\end{eqnarray}
+
+
+Looking at (\ref{5}) we can see that always $ r^2 > 0 $ and $ \sin^2(x) \in [0, 1]  $ so:
+
+$$ \| \epsilon \| \leq 1 \ \ \forall \ r, \ k,\ \Delta s$$
+
+\
+
+\textit{It shows that FTCS in (\ref{2}) is unconditionally stable}
+
+
+\end{document}
+
+
+

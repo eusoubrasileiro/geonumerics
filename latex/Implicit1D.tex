@@ -1,0 +1,135 @@
+\documentclass[legalpaper, 12pt]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{xcolor}
+
+\begin{document}
+
+The wave equation 1D with constant density  and variable velocity $ V_j$ is defined as:
+
+\begin{equation}
+\frac{\partial^2 U}{\partial t ^2} = V^2 \frac{\partial^2 U}{\partial x ^2}
+\label{1}
+\end{equation}
+
+And the implicit difference schema can be written as bellow for the unknown time $n+1$ (using the times $n$ and $n-1$ known):
+
+\begin{equation}
+U_j^{n+1}  =  \left(\frac{\Delta t  V_j^n}{\Delta s}\right)^2 \left(  U_{j+1}^{n+1} - 2 U_j^{n+1} + U_{j-1}^{n+1}  \right) + 2 U_j^n - U_j^{n-1}
+\label{2} 
+\end{equation}
+where $\Delta x = \Delta s $. \\
+or as:
+\begin{equation}
+\left(U_j^{n-1} - 2 U_j^n \right) r_j^{2} =   U_{j+1}^{n+1} - (2 + r_j^2) U_j^{n+1} + U_{j-1}^{n+1} 
+\end{equation}
+
+With $r_j = \frac{\Delta s}{\Delta t  V_j^n} $ \\
+
+Applying the boundary condition $U_0^t=U_{N-1}^t=0$, the linear system of equations, in matrix form, for every unknown $ U_j^{n+1} $ for $j \in [0, N]$ being $NDs$ the 1D domain for the solution in $x$ is given by:
+
+\begin{eqnarray}
+\begin{pmatrix}
+-(2+r_1^2)   &      1      &             &            &            \\
+      1      & -(2+r_2^2)  &      1      &            &            \\ 
+             &      1      & -(2+r_3^2)  &     1      &            \\ 
+             &             &      1      & -(2+r_4^2) &    1       \\    
+             &             &             &     1      & -(2+r_5^2) \\    
+\end{pmatrix} 
+\begin{pmatrix}
+ \ U_{1}^{n+1} \ \\
+ \ U_{2}^{n+1} \ \\ 
+ \ U_{3}^{n+1} \ \\ 
+ \ U_{4}^{n+1} \ \\ 
+ \ U_{5}^{n+1} \ \\ 
+\end{pmatrix}
+=
+\begin{pmatrix}
+\left(U_j^{n-1} - 2 U_j^n \right) r_1^{2} \\
+\left(U_j^{n-1} - 2 U_j^n \right) r_2^{2} \\ 
+\left(U_j^{n-1} - 2 U_j^n \right) r_3^{2} \\ 
+\left(U_j^{n-1} - 2 U_j^n \right) r_4^{2} \\ 
+\left(U_j^{n-1} - 2 U_j^n \right) r_5^{2} \\ 
+\end{pmatrix}
+\end{eqnarray}
+
+Simplified to the case where $N=7$ and $ U_{6} = U_{0} = 0 $
+
+\newpage
+
+Von Neumann Stability Analysis
+
+Since $ u(x,t) = e^{i(wt+kx)} $ is a solution for (\ref{1}) the discrete schema can be written as:
+
+\begin{eqnarray}
+u(x_j,t_n) &=& e^{i(wt_n+kx_j)} \nonumber \\
+&=& e^{iwn\Delta t} e^{ikj\Delta s} \nonumber \\
+&=& \epsilon^n e^{ikj\Delta s}
+\label{3}
+\end{eqnarray}
+
+
+Where $\epsilon = e^{iw \Delta t} $ and $ i = \sqrt{-1} $ .
+To maintain stability we should make sure that $ \epsilon \leq 1 $ not growing exponentially with increasing time steps. So applying (\ref{3}) in (\ref{2}) we can analyse the growth factor $\epsilon $ .
+
+\begin{equation}
+ U_j^{n+1}  =  \left( \frac{\Delta t  V_j^n}{\Delta s} \right) ^2 \left(  U_{j+1}^{n+1} - 2 U_j^{n+1} + U_{j-1}^{n+1}  \right) + 2 U_j^n - U_j^{n-1} \nonumber
+\end{equation}
+\begin{equation}
+\begin{split}
+\epsilon^{n+1} e^{ikj\Delta s}  &=  r^2 \left(  \epsilon^{n+1} e^{ik(j+1)\Delta s}  - 2 \epsilon^{n+1} e^{ikj\Delta s} + \epsilon^{n+1} e^{ik(j-1)\Delta s}  \right) \\
+&\quad + 2 \epsilon^n e^{ikj\Delta s}  - \epsilon^{n-1} e^{ikj\Delta s} \nonumber 
+\end{split}
+\end{equation}
+\begin{eqnarray}
+ 1 = r^2 (e^{ik\Delta s} -2 + e^{-ik\Delta s}) + 2 \epsilon^{-1} - \epsilon^{-2} \nonumber \\
+\epsilon^{-2} - 2 \epsilon^{-1} -  r^2 (e^{ik\Delta s} -2 + e^{-ik\Delta s}) + 1 = 0  \nonumber \\
+\epsilon^{-2} - 2 \epsilon^{-1} + 4 r^2 \sin^2 \left( k \Delta s / 2 \right) + 1 = 0
+ \label{4}
+\end{eqnarray}
+
+Where $ r = \left( \frac{\Delta t  V_j^n}{\Delta s} \right) $
+
+At equation (\ref{4}) we can substitute $ \phi = \epsilon^{-1} $ turning it to a second degree bellow:
+
+\begin{eqnarray}
+\phi^2 - 2 \phi +4 r^2 \sin^2 \left(k\Delta s/2 \right) +1 = 0  \nonumber \\
+\phi^2 - 2 \phi + c = 0  \nonumber
+\end{eqnarray}
+
+With:
+ $$ c = 1 +4 r^2 \sin^2 \left(k\Delta s/2 \right) $$
+
+Has roots $ \phi^{'} $ and $ \phi^{''} $ as bellow. Replacing $c$ also.
+
+\begin{eqnarray}
+ &=& \frac{2 \pm \sqrt{4 - 4c}}{2} = 1 \pm \sqrt{1-c} \nonumber \\
+ &=& 1 \pm \sqrt{-4 r^2 \sin^2 \left(k\Delta s/2 \right) } \nonumber \\
+ &=& 1 \pm i \ 2 r \sin \left(k\Delta s/2 \right)  \nonumber \\
+ \phi^{'} &=& 1 + i \ 2 r \sin \left(k\Delta s/2 \right)   \nonumber \\
+ \phi^{''} &=& 1 - i \ 2 r \sin \left(k\Delta s/2 \right)   \nonumber
+\end{eqnarray}
+
+Analyzing the modulus, since $  \phi^{'} $ and $  \phi^{''} $ are conjugate pairs of the same complex number the modulus is the same for both.
+We get:
+
+$$ \| \phi \| = \| \phi^{'} \| = \| \phi^{''} \| = \sqrt{1+ 4 r^2 \sin ^2 \left(k\Delta s/2 \right)}$$
+
+Going back to $\epsilon$ and getting its modulus we get :
+
+\begin{eqnarray}
+ \| \epsilon^{'} \| &=& \| \epsilon^{''} \| = \frac{1}{\| \phi  \|} \nonumber \\
+ &=& \frac{1}{\sqrt{1+ 4 r^2 \sin ^2 \left(k\Delta s/2 \right)}}
+ \label{5}
+\end{eqnarray}
+
+Looking at (\ref{5}) we can see that always $ r^2 > 0 $ and $ sin^2(x) \in \ [0,1] $ so:
+
+$$ \| \epsilon \| \leq 1 \ \ \forall \ r, \ k,\ \Delta s$$
+
+It shows that FTCS in (\ref{2}) is unconditionally stable
+
+\end{document}

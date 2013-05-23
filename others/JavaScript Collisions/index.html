@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="myCanvas" width="500" height="500" style="border:1px solid #000000;">
+This text is displayed if your browser does not support HTML5 Canvas.
+</canvas>
+<script src="balls.js"></script>
+<script type="text/javascript">
+
+// TODO:
+// 1) could improve performance using direct pixel manipulation using 
+// balls size one pixel
+// 2) Check when ball is created to avoid balls in the same position
+// 3) Create some rule to avoid the step being necessarily small compared to radius
+// to make simulation possible.
+
+
+window.requestAnimFrame = (function(callback) {
+        return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+        function(callback) {
+          window.setTimeout(callback, 1);
+        };
+      })();
+
+function circle(centerx, centery, radius, color){
+      context.beginPath();
+      context.arc(centerx, centery, radius, 0, 2 * Math.PI, true);
+      context.fillStyle = color;
+      context.lineWidth = 0.1;
+      context.fill();
+      context.stroke();
+}
+
+// BallSet collection of balls
+// NUMBERBALLS number maximum of balls
+
+function Draw(){
+	for(var i=0; i<NUMBERBALLS; i++)
+		circle(BallSet[i].x, BallSet[i].y, BallSet[i].radius, BallSet[i].color); 
+}
+
+function ContextPaint(){
+	context.clearRect(0,0,width,height);
+	Draw();
+	Simulate();
+	requestAnimFrame(function() {
+          ContextPaint(); 
+        })
+}
+
+var canvas = document.getElementById('myCanvas');
+var context = canvas.getContext('2d');
+var width = canvas.width;
+var height = canvas.height;
+
+// put values of valocity, mass, positions etc all NUMBERBALLS
+// Start(size, numberballs, step, radius, mass)
+// step must be smaller than radius to avoid balls entering in each other
+Start(500.0, 30, 2, 8.0, 1.12);
+ContextPaint();
+
+
+</script>
+</body>
+</html>
