@@ -1,0 +1,277 @@
+Implicit 2D acoustic wave equation and Von Newman stability analysis
+
+
+
+Implicit 2D acoustic wave equation
+
+
+The acoustic wave equation, for a medium of constant density, is defined by:
+
+\[ \frac{\partial^2 U}{\partial t^2} = V^2 \nabla^2 U \]
+
+Where $U$ and $V$ represents the pressure (displacement) and velocity fields. For 2D case it gets simplified to:
+
+\begin{equation}
+\frac{\partial^2 U}{\partial t^2} = V^2 \left( \frac{\partial^2 U}{\partial x^2}+ \frac{\partial^2 U}{\partial z^2} \right)
+\label{1}
+\end{equation}
+
+From equation (\ref{1}) we can approximate derivatives by Taylor series, manipulating we can reach backward differences in time and centered in space first and second order; using $Dx=Dz=Ds$, remember that $j=jDs$, $k=kDs$ and $n=nDt$.
+
+\begin{eqnarray}
+\frac{U_{jk}^n -2 U_{jk}^{n-1} + U_{jk}^{n-2}}{\Delta t^2} =  \left( \frac{V_{jk}^n}{\Delta s} \right) ^2 \left(  U_{j+1k}^n - 4 U_{jk}^n + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n  \right)
+\label{2} \\
+U_{jk}^n  =  \left( \frac{\Delta t  V_{jk}^n}{\Delta s} \right) ^2 \left(  U_{j+1k}^n - 4 U_{jk}^n + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n  \right) + 2 U_{jk}^{n-1} - U_{jk}^{n-2} \nonumber
+\end{eqnarray}
+
+Rearranging to solve in matrix form for the unknowns $ U^n $ (time n) around $U_{jk}$, we get
+
+\begin{eqnarray}
+ U_{jk}^{n-2} -2 U_{jk}^{n-1} &amp;=&amp;  \left( \frac{\Delta t  V_{jk}^n}{\Delta s} \right) ^2 \left[  U_{j+1k}^n - 4 U_{jk}^n - \left( \frac{\Delta s}{\Delta t  V_{jk}^n} \right) ^2  U_{jk}^n + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n  \right] \nonumber \\
+\left( \frac{\Delta s}{ \Delta t  V_{jk}^n} \right) ^2 \left( U_{jk}^{n-2} -2 U_{jk}^{n-1} \right) &amp;=&amp; U_{j+1k}^n - U_{jk}^n \left[ 4+ \left( \frac{\Delta s}{\Delta t  V_{jk}^n} \right) ^2  \right]  + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n \label{3}
+\end{eqnarray}
+
+Note: Centered differences in  (\ref{2}) would reach a explicit method with stability restrictions. So although (\ref{2}) is first order in time the analyses in the end shows it's unconditionally stable.
+
+Rewritting (\ref{3}) to a simplified form, introducing some new variables:
+
+\begin{eqnarray}
+\left( \frac{\Delta s}{ \Delta t  V_{jk}^n} \right) ^2 \left( U_{jk}^{n-2} -2 U_{jk}^{n-1} \right) =
+  U_{j-1k}^n - \left[ 4+ \left( \frac{\Delta s}{\Delta t  V_{jk}^n} \right) ^2  \right] U_{jk}^n + U_{j+1k}^n + U_{jk+1}^n + U_{jk-1}^n  \nonumber \\
+r^{-2} \left( U_{jk}^{n-2} -2 U_{jk}^{n-1} \right) =
+  U_{j-1k}^n + \gamma \  U_{jk}^n + U_{j+1k}^n + U_{jk+1}^n + U_{jk-1}^n
+\label{4}
+\end{eqnarray}
+
+Where:
+
+$$ r = \frac{\Delta t  V_{jk}^n}{ \Delta s} $$
+$$ \gamma = -4 -r^{-2}  $$
+
+For a tiny grid 3x3 dimensions we can apply a Dirichlet boundary condition in (\ref{4}). That means $ U_{\Omega} = 0 \ \forall \ n $ and $ U_{jk}^n $ with $ j, \ k \in Z \ \left[ 0, 2  \right] $ , illustrated bellow:
+
+\begin{array}{| c | c | c | c | c |}
+\hline  U_{\Omega} &amp; U_{\Omega} &amp; U_{\Omega} &amp; U_{\Omega} &amp; U_{\Omega} \\\hline
+U_{\Omega} &amp; U_{00}^n &amp;  U_{10}^n &amp;  U_{20}^n &amp; U_{\Omega} \\\hline
+U_{\Omega} &amp; U_{10}^n &amp;  U_{11}^n &amp; U_{21}^n &amp; U_{\Omega}\\\hline
+U_{\Omega} &amp; U_{20}^n &amp;  U_{21}^n &amp; U_{22}^n &amp; U_{\Omega} \\\hline
+U_{\Omega} &amp; U_{\Omega} &amp; U_{\Omega} &amp; U_{\Omega} &amp; U_{\Omega} \\\hline
+\end{array} (4.a)
+
+\begin{array}{| c | c | c | c | c |}
+\hline 0.0 &amp; 0.0 &amp; 0.0 &amp; 0.0 &amp; 0.0 \\\hline
+0.0 &amp; P_{0} &amp; P_{1} &amp;  P_{2}  &amp; 0.0 \\\hline
+0.0 &amp; P_{3} &amp; P_{4} &amp; P_{5} &amp; 0.0 \\\hline
+0.0 &amp; P_{6} &amp; P_{7} &amp; P_{8} &amp; 0.0 \\\hline
+0.0 &amp; 0.0 &amp; 0.0 &amp; 0.0 &amp; 0.0 \\\hline
+\end{array} (4.b)
+
+We can assembly the linear system for this simple grid as a 9x9 matrix, using the equation (\ref{4}) for every unknown $ P_i $ . Not showing the independent term $  r^{-2} \left( U_{jk}^{n-2} -2 U_{jk}^{n-1} \right) $. Calculation of the coefficients can be made simple  using (4.b), empty position means 0 as coeficiente; also represented by $ \varnothing $.
+
+\begin{array}{ l }
+P_0 = \varnothing  0  1  \varnothing 3  \\
+P_1 = 0 1 2 \varnothing 4 \\
+P_2 = 1 2 \varnothing \varnothing 5 \\
+P_3 = \varnothing 3 4 0 6 \\
+P_4 = 3 4 5 1 7 \\
+P_5 = 4 5 \varnothing 2 8 \\
+P_6 = \varnothing 6 7 3 \varnothing \\
+P_7 = 6 7 8 4 \varnothing \\
+P_8 = 7 8 \varnothing 5 \varnothing \\
+\end{array}
+
+
+\begin{array}{| c | c | c | c | c | c | c | c | c | c |}
+\hline
+         &amp;  P_0  &amp;  P_1  &amp;  P_2  &amp;  P_3  &amp;  P_4  &amp;  P_5  &amp;  P_6  &amp;  P_7  &amp;  P_8  \\ \hline
+  P_0  &amp; \gamma &amp;    1    &amp;         &amp;    1    &amp;         &amp;         &amp;         &amp;         &amp;         \\ \hline
+  P_1  &amp;    1    &amp; \gamma &amp;     1   &amp;         &amp;     1   &amp;         &amp;         &amp;         &amp;         \\ \hline
+  P_2  &amp;         &amp;    1    &amp; \gamma &amp;         &amp;         &amp;    1    &amp;         &amp;         &amp;         \\ \hline
+ P_3  &amp;    1    &amp;         &amp;         &amp; \gamma &amp;    1    &amp;         &amp;    1    &amp;         &amp;         \\ \hline
+  P_4  &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma &amp;    1    &amp;         &amp;    1    &amp;         \\ \hline
+  P_5  &amp;         &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma &amp;         &amp;         &amp;    1    \\ \hline
+  P_6  &amp;         &amp;         &amp;         &amp;    1    &amp;         &amp;         &amp; \gamma &amp;    1    &amp;         \\ \hline
+  P_7  &amp;         &amp;         &amp;         &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma &amp;    1    \\ \hline
+     P_8  &amp;         &amp;         &amp;         &amp;         &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma \\ \hline
+\end{array}
+
+Or the full human form, matrix notation using the independent term :
+
+\begin{eqnarray}
+\begin{pmatrix}
+\gamma   &amp;    1    &amp;         &amp;    1    &amp;         &amp;         &amp;         &amp;         &amp;         \\
+    1    &amp; \gamma  &amp;     1   &amp;         &amp;     1   &amp;         &amp;         &amp;         &amp;         \\
+         &amp;    1    &amp; \gamma  &amp;         &amp;         &amp;    1    &amp;         &amp;         &amp;         \\
+    1    &amp;         &amp;         &amp; \gamma  &amp;    1    &amp;         &amp;    1    &amp;         &amp;         \\
+         &amp;    1    &amp;         &amp;    1    &amp; \gamma  &amp;    1    &amp;         &amp;    1    &amp;         \\
+         &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma  &amp;         &amp;         &amp;    1    \\
+         &amp;         &amp;         &amp;    1    &amp;         &amp;         &amp; \gamma  &amp;    1    &amp;         \\
+         &amp;         &amp;         &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma  &amp;    1    \\
+         &amp;         &amp;         &amp;         &amp;         &amp;    1    &amp;         &amp;    1    &amp; \gamma  \\
+\end{pmatrix}
+\begin{pmatrix}
+ \ U_{00}^n \ \\
+ \ U_{01}^n \ \\
+ \ U_{02}^n \ \\
+ \ U_{10}^n \ \\
+ \ U_{11}^n \ \\
+ \ U_{12}^n \ \\
+ \ U_{20}^n \ \\
+ \ U_{21}^n \ \\
+ \ U_{22}^n \ \\
+\end{pmatrix}
+=
+r^{-2}
+\begin{pmatrix}
+U_{00}^{n-2} \\
+U_{01}^{n-2} \\
+U_{02}^{n-2} \\
+U_{10}^{n-2} \\
+U_{11}^{n-2} \\
+U_{12}^{n-2} \\
+U_{20}^{n-2} \\
+U_{21}^{n-2} \\
+U_{22}^{n-2} \\
+\end{pmatrix}
+-2r^{-2}
+\begin{pmatrix}
+U_{00}^{n-1} \\
+U_{01}^{n-1} \\
+U_{02}^{n-1} \\
+U_{10}^{n-1} \\
+U_{11}^{n-1} \\
+U_{12}^{n-1} \\
+U_{20}^{n-1} \\
+U_{21}^{n-1} \\
+U_{22}^{n-1} \\
+\end{pmatrix}
+\end{eqnarray}
+
+Analyzing above a recursive schema can be created. From a grid of dimensions $ N_x \times N_z $ we have a linear system $L$ with dimension $ M \times M $ ( $ M = N_x N_z $) . We have five rules for every line in $ L $, looking at $ L $ as a list of lines, list with dimension $ M $, these rules are based upon the principal diagonal, defined as $L[i][i]$.
+
+Where $ i = \ \in [0, M] $
+
+$$ j = i \% N_x \nonumber \ \mbox{integer divison remainder} $$
+$$ k = i / N_x \nonumber \ \mbox{integer division} $$
+$$ U_{j-1k}^n = 1 \ \ \forall \ j-1 \geq 0 \implies L[i][i-1] = 1 \nonumber $$
+$$ U_{jk}^n =  \gamma \ \ \implies L[i][i] = \gamma \nonumber $$
+$$ U_{j+1k}^n = 1 \ \ \forall \ j+1 &lt; N_x \implies L[i][i+1] = 1 \nonumber $$
+$$ U_{jk-1}^n = 1 \ \ \forall \ z-1 \geq 0 \implies L[i][i-N_x] = 1 \nonumber $$
+$$ U_{jk+1}^n = 1 \ \ \forall \ z+1 &lt; N_z \implies L[i][i+N_x] = 1 \nonumber $$
+
+Can also be seeing, looking each diagonal as a list (reminded that we have 5 defined diagonals):
+
+* Leading diagonal defined by $L[p] = \gamma_{jk}$ with $p \in [0, M] $
+
+* Leading diagonal upper +1 $L[p] = 1$ with $p \in [0, M-1] $
+   Leading diagonal lower -1  $L[p] = 1$ with $p \in [0, M-1] $
+   Except where $ p \%Nx == 0 $
+
+* Leading diagonal upper in $+Nx$ $L[p] = 1$ with $p \in [0, M-Nx] $
+   Leading diagonal lower in $-Nx$  $L[p] = 1$ with $p \in [0, M-Nx] $
+
+This matrix similar to the 2D poisson matrix, with $5N_xN_z-2N_x-2N_z$ non zero elements.
+
+Von Newman stability analysis
+
+
+Von Newman stability analysis for acoustic wave equation implicit centered differences: 1st order time and space (N 2)'th order:
+
+\begin{eqnarray}
+U_{jk}^{n+2}  =  \left( \frac{\Delta t  V_{jk} }{\Delta s} \right) ^2 \left(  \sum_{a=-N}^N w_a U_{j+a k}^{n+2} + \sum_{a=-N}^N w_a U_{j k+a}^{n+2} \right) + 2 U_{jk}^{n+1} - U_{jk}^n  \\
+U_{jk}^{n+2}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2  \sum_{a=-N}^N  w_a \left( U_{j+a k}^{n+2} + U_{j k+a}^{n+2} \right) + 2 U_{jk}^{n+1} - U_{jk}^n \label{a6}
+\end{eqnarray}
+
+For forth order space, we have $N=2$ and $w$ is:
+$$ w = \frac{1}{12} [-1, 16, -30, 16, -1] $$
+
+Can be simplified to 1st order (N=1):
+
+\begin{equation}
+U_{jk}^{n+2}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2 \left(  U_{j+1k}^{n+2} - 4 U_{jk}^{n+2} + U_{jk+1}^{n+2} + U_{j-1k}^{n+2} + U_{jk-1}^{n+2}  \right) + 2 U_{jk}^{n+1} - U_{jk}^{n} \nonumber
+\end{equation}
+
+Using the discrete solution for 2D wave equation, where $ i = \sqrt{-1} $, $ n = n \Delta t $, $ j = j \Delta x $ and $ k = k \Delta z $. Last using $ \Delta x = \Delta z = \Delta s $, follows that the discrete solution can be written as:
+
+\begin{eqnarray}
+U_{jk}^n = e^{i \left( \omega t + px + qz \right)} \nonumber \\
+U_{jk}^n = \epsilon^n e^{i \left( pj\Delta s + qk\Delta s \right)}  \nonumber \\
+U_{jk}^n = \epsilon^n e^{i \Delta s \left( pj + qk \right)}  \label{a7}
+\end{eqnarray}
+
+Where $\epsilon $ is the growth factor, and should be $ |\epsilon| \leq 1$ for stability. \\
+
+Replacing (\ref{a7}) in (\ref{a6}), using the identities bellow and simplifying dividing both sides by $ U_{jk}^{n+2} $
+
+$$ r = \frac{\Delta t  V_{jk}}{\Delta s} $$
+$$ \phi_{j+l\ k+m} = e^{i \Delta s \left( pl+qm \right)} $$
+
+\begin{equation}
+\Omega = r^2 \sum_{a=-N}^N  w_a \left( \phi_{j+a k} + \phi_{j k+a}  \right) \label{a8}
+\end{equation}
+
+we get:
+
+\begin{eqnarray}
+1  =  \Omega + 2 \epsilon^{-1} -\epsilon^{-2} \nonumber \\
+\quad \text{making} \ \ \epsilon^{-1} = \mu \nonumber \\
+\mu^2 - 2 \mu + 1 -\Omega = 0 \nonumber \\
+\mu = \frac{ 2 \pm \sqrt{ 4 - 4 +4 \Omega}}{2} \nonumber \\
+\mu = 1 \pm \sqrt{ \Omega} \label{a9}
+\end{eqnarray}
+
+back to expand $ \Omega $ defined in (\ref{a8}):
+
+$$ \Omega = r^2 \sum_{a=-N}^N  w_a \left( \phi_{j+a k} + \phi_{j k+a}  \right) \nonumber  $$
+$$ = r^2 \sum_{a=-N}^{N} w_a ( e^{i \Delta s \ p a} + e^{i \Delta s \ q a} ) \nonumber $$
+
+$$ =r^2
+\begin{pmatrix}
+ \cdots &amp; e^{-i \Delta s 2 p} + e^{-i \Delta s 2 q} &amp; e^{-i \Delta s p} + e^{-i \Delta s q} &amp; e^0+e^0 &amp; e^{i \Delta s p} + e^{i \Delta s q} &amp; e^{i \Delta s 2 p} + e^{i \Delta s 2 q} &amp; \cdots \\
+\end{pmatrix}
+\begin{pmatrix}
+\cdots \\
+w_{-2} \\
+w_{-1} \\
+w_0 \\
+w_1 \\
+w_2 \\
+\cdots
+\end{pmatrix}
+\nonumber $$
+
+Since $w$ is even $ w_a = w_{-a} $ and $ e^{i\theta} + e^{-i\theta} = 2 \cos{\theta} $ we can rewrite as:
+
+\begin{equation}
+=r^2
+\begin{pmatrix}
+ \cdots &amp; 2\cos( \Delta s 2 p) + 2\cos(\Delta s 2 q) &amp; 2\cos(\Delta s p) + 2\cos(\Delta s q) &amp; 2 \\
+\end{pmatrix}
+\begin{pmatrix}
+\cdots \\
+w_{2} \\
+w_{1} \\
+w_0 \\
+\end{pmatrix}
+\nonumber
+\end{equation}
+
+For the simplest case 2nd order $ N=1 $ we have $ (w_1, w_0) = (1, -2) $
+
+$$ \Omega = r^2 \left( 2\cos(\Delta s p) + 2\cos(\Delta s q) - 4\right) $$
+$$ = -4r^2 \left( \sin^2(\frac{\Delta s p}{2}) + \sin^2(\frac{\Delta s q}{2}) \right) \label{a10} $$
+
+Note:  $ 2 \cos(\theta) - 2 = -4 \sin ^2 (\theta) $ .
+
+Replacing back to (\ref{a9}) :
+
+$$ \mu = 1 \pm \sqrt{\Omega} $$
+$$ \mu = 1 \pm  i 2 \sqrt{r^2 \left( \sin^2(\frac{\Delta s p}{2}) + \sin^2(\frac{\Delta s q}{2}) \right)} $$
+
+Back to $\epsilon$ :
+
+\[ \frac{1}{a^2+b^2} = | \epsilon^{'} | = | \epsilon^{''} | = \frac{1}{1 + 4r^2 \left( \sin^2(\frac{\Delta s p}{2}) + \sin^2(\frac{\Delta s q}{2}) \right)} \]
+
+That is for $ \forall \ r, \ \Delta \ s, \ p, \ q \ \implies | \epsilon | \leq 1 $
+
+Follows (\ref{a6}) with $N=1$ is unconditionally stable.

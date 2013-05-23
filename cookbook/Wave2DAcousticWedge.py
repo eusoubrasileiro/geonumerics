@@ -18,14 +18,14 @@ import numpy as np
 filename='Wedge160x400.png'
 img = Image.open(filename)
 img.load()
-img = img.convert('L') # gray scale, convert format
+img = img.convert('I') # gray scale, convert format
 velocity  = np.asarray(img, dtype=np.float32)
-velocity[:][:]/=255
-velocity[:][:]-=2
-velocity[:][:]*=-2000
+velocity[:][velocity[:] == 255.0] = 3500.0
+velocity[:][velocity[:] == 0.0] = 2500.0
+velocity[:][velocity[:] == 9.0] = 4500.0
 print np.shape(velocity)
 samplerate=0.001
-triangle = Triangle(90.0, samplerate)
+triangle = Triangle(100.0, samplerate)
 wd2d = Imp2DLuSparseWave(400, 160, 10, samplerate, velocity, 225, 0, 1000, wavelet=triangle)
 movie= wd2d.Simulate()
 del wd2d # just cleaning up

@@ -1,0 +1,157 @@
+\documentclass[legalpaper, 12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphics}
+\usepackage{xcolor}
+\usepackage[pdftex]{hyperref}
+
+\begin{document}
+
+Von Newman stability analysis for acoustic wave equation explicit centered differences: 2nd order time and space (N 2)'th order:
+
+
+\begin{multline}
+U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk} }{\Delta s} \right) ^2 \left(  \sum_{a=-N}^N w_a U_{j+a k}^n + \sum_{a=-N}^N w_a U_{j k+a}^n \right) + 2 U_{jk}^{n} - U_{jk}^{n-1}  \\
+U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2  \sum_{a=-N}^N  w_a \left( U_{j+a k}^n + U_{j k+a}^n \right) + 2 U_{jk}^{n} - U_{jk}^{n-1} \label{1}
+\end{multline}
+
+For forth order space, we have $N=2$ and $w$ is:
+$$ w = \frac{1}{12} [-1, 16, -30, 16, -1] $$
+
+Can also be simplified to 1st order (N=1):
+
+\begin{equation}
+U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2 \left(  U_{j+1k}^n - 4 U_{jk}^n + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n  \right) + 2 U_{jk}^{n} - U_{jk}^{n-1} \nonumber
+\end{equation}
+
+
+Using the discrete solution for 2D wave equation, where $ i = \sqrt{-1} $, $ n = n \Delta t $, $ j = j \Delta x $ and $ k = k \Delta z $. Last using $ \Delta x = \Delta z = \Delta s $, follows that the discrete solution can be written as:
+
+\begin{eqnarray}
+U_{jk}^n = e^{i \left( \omega t + px + qz \right)} \nonumber \\
+U_{jk}^n = \epsilon^n e^{i \left( pj\Delta s + qk\Delta s \right)}  \nonumber \\
+U_{jk}^n = \epsilon^n e^{i \Delta s \left( pj + qk \right)}  \label{2}
+\end{eqnarray}
+
+Where $\epsilon $ is the growth factor, and should be $ |\epsilon| \leq 1$ for stability. \\
+
+Replacing (\ref{2}) in (\ref{1}), using the identities bellow and simplifying dividing both sides by $ U_{jk}^{n+1} $
+
+$$ r = \frac{\Delta t  V_{jk}}{\Delta s} $$
+$$ \phi_{j+l\ k+m} = e^{i \Delta s \left( pl+qm \right)} $$
+
+\begin{equation}
+\Omega = r^2 \sum_{a=-N}^N  w_a \left( \phi_{j+a k} + \phi_{j k+a}  \right) \label{3}
+\end{equation}
+
+we get:
+
+\begin{eqnarray}
+1  =  \left( \Omega + 2 \right) \epsilon^{-1} -\epsilon^{-2} \nonumber \\
+\quad \text{making} \ \ \epsilon^{-1} = \mu \nonumber \\
+\mu^2 - \left( \Omega + 2 \right) \mu + 1 = 0 \nonumber \\
+\mu = \frac{(\Omega+2) \pm \sqrt{\Omega^2 + 4\Omega}}{2} \label{4}
+\end{eqnarray}
+
+back to expand $ \Omega $ defined in (\ref{3}):
+
+\begin{eqnarray}
+\Omega &=& r^2 \sum_{a=-N}^N  w_a \left( \phi_{j+a k} + \phi_{j k+a}  \right) \nonumber \\
+	&=& r^2 \sum_{a=-N}^{N} w_a ( e^{i \Delta s \ p a} + e^{i \Delta s \ q a} )\nonumber 
+\end{eqnarray}
+\begin{equation}
+=r^2
+\begin{pmatrix}
+ \cdots & e^{-i \Delta s 2 p} + e^{-i \Delta s 2 q} & e^{-i \Delta s p} + e^{-i \Delta s q} & e^0+e^0 & e^{i \Delta s p} + e^{i \Delta s q} & e^{i \Delta s 2 p} + e^{i \Delta s 2 q} & \cdots \\
+\end{pmatrix}
+\begin{pmatrix}
+\cdots \\
+w_{-2} \\
+w_{-1} \\
+w_0 \\
+w_1 \\
+w_2 \\
+\cdots
+\end{pmatrix}
+\nonumber
+\end{equation}
+
+Since $w$ is even $ w_a = w_{-a} $ and $ e^{i\theta} + e^{-i\theta} = 2 \cos{\theta} $ we can rewrite as:
+
+\begin{equation}
+=r^2
+\begin{pmatrix}
+ \cdots & 2\cos( \Delta s 2 p) + 2\cos(\Delta s 2 q) & 2\cos(\Delta s p) + 2\cos(\Delta s q) & 2 \\
+\end{pmatrix}
+\begin{pmatrix}
+\cdots \\
+w_{2} \\
+w_{1} \\
+w_0 \\
+\end{pmatrix}
+\nonumber
+\end{equation}
+
+For the simplest case 2nd order $ N=1 $ we have $ (w_1, w_0) = (1, -2) $
+
+\begin{eqnarray}
+\Omega	&=& r^2 \left( 2\cos(\Delta s p) + 2\cos(\Delta s q) - 4\right) \nonumber \\
+	&=& -4r^2 \left( \sin^2(\frac{\Delta s p}{2}) + \sin^2(\frac{\Delta s q}{2}) \right) \label{5}
+\end{eqnarray}
+
+Note:  $ 2 \cos(\theta) - 2 = -4 \sin ^2 (\theta) $ .\\
+
+We can also write (\ref{5}) using $ \beta = \left( \sin^2(\frac{\Delta s p}{2}) + \sin^2(\frac{\Delta s q}{2}) \right) $ as :
+
+$$ \Omega = -4r^2\beta $$
+
+Replacing back to (\ref{4}) :
+
+\begin{eqnarray}
+\mu &=& \frac{(\Omega+2) \pm \sqrt{\Omega^2 + 4\Omega}}{2} \nonumber \\
+\mu &=& -2r^2\beta+1 \pm 2\sqrt{r^2\beta(r^2\beta-1)} \nonumber
+\end{eqnarray}
+
+I can't find if $ | \mu | >= 1 $ or what limitations I have in $r$ for this requeriment, that is the same as needing $ | \epsilon | <= 1  $. 
+\newpage
+
+
+Jing-Bo Chen, \\
+\bigskip
+
+Convergence given by:
+
+$$ r = \frac{V \Delta t}{\Delta s} $$ 
+
+Where $ V $ is the maximum of $ V_{jk} $ 
+
+$$ r \leq \frac{2}{\sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}} $$
+
+Reminded that $w_a$ is the centered finite diferences weights. 
+
+Can writen as limitation to $ \Delta t $ :
+
+$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}} $$
+
+\newpage
+
+Altough the schema above is stable under the given condition, quotting from scicomp:
+
+The first order upwind method is monotone; it does not introduce spurious oscillations. But it is only first order accurate, resulting in so much numerical diffusion as to be unusable for many purposes. Godunov's Theorem states that linear spatial discretizations of higher than first order cannot be monotone.
+
+So Lets try the first order, altough it might be dispersive as well in regions of high $ \nabla = ( \frac{\partial}{\partial x}, \frac{\partial}{\partial y} ) $ Should take a look on S*U implementation! Book bought! Loook at implementation!
+
+\medspace
+\medspace
+Advection form of 2D Wave equation:
+\medspace
+
+$$ \frac{\partial U}{\partial t ^2} = v^2 \nabla^2 U $$ 
+
+using $\theta = \nabla U $ and 
+
+
+\end{document}}
