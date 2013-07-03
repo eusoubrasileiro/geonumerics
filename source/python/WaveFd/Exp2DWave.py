@@ -17,7 +17,8 @@ class Exp2DWave(BaseWave2DField):
     
     * Very Slow : try using cython for loop said to be 8x faster!!!
     Something is wrong in the implementation, the convergence criteria is
-    correc by Jing-Bo Chen or something else is wrong.
+    correct by Jing-Bo Chen. Problem is big gradients causing instability due
+    source. 
     
     Convergence
      

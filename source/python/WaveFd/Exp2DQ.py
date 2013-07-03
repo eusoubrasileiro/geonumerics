@@ -17,83 +17,94 @@ Under limits.
 import numpy as np
 import sys
 
-def Triangle(fc, dt, n=None):
+def _ricker(fc, dt, t, delay=True):
+    if(delay):
+        tdelay = 1.0/fc # to create a causal wavelet starting at 0
+        t = t-tdelay
+    
+    ricker = (1-2*(np.pi*fc*t)**2)*np.exp(-(np.pi*fc*t)**2) 
+    return  ricker
+
+def Ricker(fc, dt, n=None):
     r"""
-    Triangle Wave one Period.
-    Defined by frequency and sample rate or by size
+    Ricker Wavelet:
+    :math:`A = (1-2 \pi^2 f^2 t^2) e^{-\pi^2 f^2 t^2}`
 
     * fc        : maximum desired frequency
     * dt        : sample rate
-    * n         : half length of triangle    
     """
+    # n is specified based on closer to zero 
+    # 0.0 = (1-2 pi^2 fc^2 t^2) e^(-pi^2 fc^2 t^2)
+    # that gives {t = -/+ 1/(sqrt(2) pi fc)}
+    
     if(n==None):
         n=int(1/float(fc*dt))
 
-    t = np.arange(0+1.0/n, 1, 1.0/n)
-    y = 1-t
-    y = np.append(y, 0.0)
-    y_ = 1-t[::-1]
-    y_ = np.insert(y_, 0, 0.0)
+    t = np.arange(-dt*(n-1)/2,(dt*(n-1)/2)+dt, dt)
     
-    return np.append(y_, np.append(1, y))
+    return  _ricker(fc, dt, t)
 
-Nz = Nx = 20
-Dt = 0.001
+Nz = Nx = 80
+Dt = 0.002
 Ds = 10
-numberiter = 200
+numberiter = 2000
 
-Source = Triangle(90, 0.001)
+
+
+#Source = Ricker(40, 0.001, 80)
 Uprevious = np.zeros([Nz, Nx]) # previous time
 Ucurrent = np.zeros([Nz, Nx]) # current time
 Ufuture = np.zeros([Nz, Nx]) # future time
+c = 2000.0 #constant
+fmax = c/(10.0*Ds)
+fpeak = 0.5*fmax
+sx = 40
+sz = 40
 V = np.zeros([Nz, Nx]) 
-V[:][:] = 2000.0
+V[:][:] = c
 
 # additional not needed 
-Simulation  = np.zeros([numberiter, Nz, Nx])
+Simulation  = np.zeros([numberiter, Nz, Nx])      
 
-# source activation, center of grid
-Uprevious[10][10] = Source[0]
 
-for i in range(1, numberiter+1):
+for i in range(0, numberiter):
+    for k in range(Nz):
+        for j in range(Nx):
+            # u0k u1k*ujk*u3k u4k     
+            # Boundary fixed 0 outside        
+            u0k=u1k=0.0
+            uj0=uj1=0.0
+            ujk = Ucurrent[k][j]      
 
-	# tringular source position center grid
-	if(i < np.size(Source)):
-		Ucurrent[10][10] = Source[i]
+            if(j-1 > -1):
+                u0k = Ucurrent[k][j-1]
+            if(j+1 < Nx):
+                u1k = Ucurrent[k][j+1]            
+            if(k-1 > -1):
+                uj0 = Ucurrent[k-1][j]
+            if(k+1 < Nz):
+                uj1 = Ucurrent[k+1][j]            
 
-	for k in range(Nz):
-		for j in range(Nx):
-			# u0k u1k*ujk*u3k u4k     
-			# Boundary fixed 0 outside        
-			u0k=u1k=u3k=u4k=0.0
-			uj0=uj1=uj3=uj4=0.0
-			ujk = Ucurrent[k][j]      
+            Ufuture[k][j] = 2*ujk-Uprevious[k][j]+(uj0+uj1+u0k+u1k-4*ujk)*(Dt*V[k][j]/Ds)**2
 
-			if(j-2 > -1):
-				u0k = Ucurrent[k][j-2]	
-			if(j-1 > -1):
-				u1k = Ucurrent[k][j-1]
-			if(j+1 < Nx):
-				u3k = Ucurrent[k][j+1]            
-			if(j+2 < Nx):
-				u4k = Ucurrent[k][j+2]
-			if(k-2 > -1):
-				uj0 = Ucurrent[k-2][j]
-			if(k-1 > -1):
-				uj1 = Ucurrent[k-1][j]
-			if(k+1 < Nz):
-				uj3 = Ucurrent[k+1][j]            
-			if(k+2 < Nz):
-				uj4 = Ucurrent[k+2][j]
+    # source position center grid
+    # smooth region around the center of the grid +3-3
+    # exact solution
+    dsm = 3
+    for nz in range(sz-dsm,sz+dsm,1):
+        for nx in range(sx-dsm,sx+dsm,1):
+            dz = nz - sz 
+            dx = nx - sx
+            t = i*Dt
+            r = np.sqrt(dz**2+dx**2)
+            if(r == 0):
+                Ufuture[nz][nx] -= _ricker(fpeak, Dt, t-r/c, delay=True)
+            else:
+                Ufuture[nz][nx] -= _ricker(fpeak, Dt, t-r/c, delay=True)/(2*np.pi*r)
 
-			d2u_dx2 = (-u0k+16*u1k-30*ujk+16*u3k-u4k)/12.0
-			d2u_dz2 = (-uj0+16*uj1-30*ujk+16*uj3-uj4)/12.0
-			Ufuture[k][j] = (d2u_dx2+d2u_dz2)*(Dt*V[k][j]/Ds)**2
-			Ufuture[k][j] += 2*Ucurrent[k][j]-Uprevious[k][j]
+    # make the update in the time stack
+    Uprevious = Ucurrent
+    Ucurrent = Ufuture
+    Simulation[i] = Ucurrent
 
-	# make the update in the time stack
-	Uprevious = Ucurrent
-	Ucurrent = Ufuture
-	Simulation[i-1] = Ucurrent
-
-	sys.stdout.write("\r %d" %(i) )
+    sys.stdout.write("\r %d" %(i) )

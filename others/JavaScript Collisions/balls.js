@@ -1,16 +1,20 @@
-var STEP = 1;
-var NUMBERBALLS = 100;
-var SIZE = 500.0; /* Posicao máximo em x e y */
-var RADIUS = 1.0; /* Raio das bolinhas */
-var MASS = 1.0;
-var ERROR = 0.5; /* Erro de ultrapassagem dos limites de ambiente */
+//////////////////////////////////////////////////////////////////
+////// Code to calculate the interactions between balls
+////// Simple Linear Momentum 
+/////////////////////////////////////////////////////////////////
 
-/* collection of balls */
-var BallSet = [];
+var STEP;
+var NUMBERBALLS; // NUMBERBALLS number maximum of balls
+var SIZE; /* Posicao máximo em x e y */
+var RADIUS; /* Raio das bolinhas */
+var MASS;
+var ERROR; /* Erro de ultrapassagem dos limites de ambiente or initial distance from
+other balls*/
+var BallSet; /* collection of balls */
 
 function randsign()
 {
-	return (Math.random() > 0.5) ? -1.0 : 1.0;
+    return (Math.random() > 0.5) ? -1.0 : 1.0;
 }
 
 function randomcolor() {
@@ -24,25 +28,42 @@ function randomcolor() {
 
 function Ball(x, y, vi, vj, mass, radius, outx, outy, ignore)
 {
-	this.x = x;
-	this.y = y;
-	this.vi = vi;
-	this.vj = vj;
-	this.mass = mass;
-	this.radius = radius;
-	/* indicativo de dentro (0) ou fora do ambiente (1) */
-	this.outx = outx;
-	this.outy = outy;
-	this.ignore = ignore;
-	this.color = randomcolor();
+    this.x = x;
+    this.y = y;
+    this.vi = vi;
+    this.vj = vj;
+    this.mass = mass;
+    this.radius = radius;
+    /* indicativo de dentro (0) ou fora do ambiente (1) */
+    this.outx = outx;
+    this.outy = outy;
+    this.ignore = ignore;
+    this.color = randomcolor();
 
-	this.Move = function()
-	{ /* move in the versor direction one STEP*/
-		this.x += this.vi*STEP;
-		this.y += this.vj*STEP;
-	}
+    this.Move = function()
+    { /* move in the versor direction one STEP*/
+        this.x += this.vi*STEP;
+        this.y += this.vj*STEP;
+    }
 }
 
+// check wether x, y are inside the circle X, Y, R
+function isInsideCircle(circleX, circleY, circleR, x, y)
+{
+    return ((x-circleX)*(x-circleX) + (y - circleY)*(y - circleY) <= circleR*circleR)? true: false;
+}
+
+// check if there is already a ball in the radius of this
+function isThereCloserBall(x, y, radius)
+{
+    for(var i=0; i<BallSet.length; i++)
+        // must be at least (radius + BallSet[i].radius) away        
+        // add Error to avoid glued balls
+        if(isInsideCircle(BallSet[i].x, BallSet[i].y, radius+BallSet[i].radius+ERROR, x, y))
+            return true;
+    
+    return false;
+}
 
 function Start(size, numberballs, step, radius, mass)
 {    
@@ -52,22 +73,30 @@ function Start(size, numberballs, step, radius, mass)
     STEP = step;
     MASS = mass;
     RADIUS = radius;
+    ERROR = 2.0;
+    BallSet = [];
 
     for(var i=0; i<NUMBERBALLS; i++){
 
-		/* posicoes entre 0 e SIZE para cada dimensao pois o ambiente its a cube (x, y) */
-		/* after velocities maximum 1, mass and radius all equal */
-    	var ball = new Ball(
-    		(SIZE-2*RADIUS)*Math.random()+2*RADIUS, 
-    		(SIZE-2*RADIUS)*Math.random()+2*RADIUS, 
-    		randsign()*Math.random(),
-    		randsign()*Math.random(),
-    		MASS,
-    		RADIUS,
-    		false, false, false /* inside and not ignored */
-    		);
+        do {
+            /* posicoes entre 0 e SIZE para cada dimensao pois o ambiente its a cube (x, y) */
+            /* after velocities maximum 1, mass and radius all equal */
+            var ball = new Ball(
+                (SIZE-2*RADIUS-ERROR)*Math.random()+2*RADIUS+ERROR, 
+                (SIZE-2*RADIUS-ERROR)*Math.random()+2*RADIUS+ERROR, 
+                randsign()*Math.random(),
+                randsign()*Math.random(),
+                MASS,
+                RADIUS,
+                false, false, false /* inside and not ignored */
+                );
 
-    	BallSet.push(ball);
+        // recreate the ball if closer or in the radius of an already existent
+        } while(isThereCloserBall(ball.x, ball.y, ball.radius))
+
+        //check if there is a ball already in the radius of this position
+
+        BallSet.push(ball);
     }
 }
 
@@ -85,7 +114,7 @@ function Simulate(){
         BallSet[i].ignore = false;
 
     for(var i=0; i<NUMBERBALLS; i++){
-    	BallSet[i].Move()        
+        BallSet[i].Move()        
         Collisions(i);
         CollisionBorders(i); /* da particula i */
     }
@@ -97,12 +126,12 @@ caso estejam mais proximao que a soma de seus raios COLISAO!!!
 */
 function Collisions(i){
     
-	for(var j=0; j < NUMBERBALLS; j++){	    
+    for(var j=0; j < NUMBERBALLS; j++){     
         if(!BallSet[j].ignore){ /* verfica se a colisao ja foi analisada com esta bola*/
             var inx = BallSet[i].x - BallSet[j].x;
-            var iny = BallSet[i].y - BallSet[j].y;	            
+            var iny = BallSet[i].y - BallSet[j].y;              
             var dradius = BallSet[i].radius + BallSet[j].radius;
-			/* verifica se as duas bolas estao mais proximas que a soma dos dois raios?? */
+            /* verifica se as duas bolas estao mais proximas que a soma dos dois raios */
             if(inx*inx + iny*iny <= dradius*dradius)
                 Collision(i, j)
             
