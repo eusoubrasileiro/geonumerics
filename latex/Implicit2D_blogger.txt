@@ -1,11 +1,10 @@
 Implicit 2D acoustic wave equation and Von Newman stability analysis
 
 
-
 Implicit 2D acoustic wave equation
 
+The scalar wave equation, a fluid medium with variable velocity, is defined by:
 
-The acoustic wave equation, for a medium of constant density, is defined by:
 
 \[ \frac{\partial^2 U}{\partial t^2} = V^2 \nabla^2 U \]
 
