@@ -43,9 +43,6 @@ def SolveUfuture(
 			if(k+1 < Nz):
 				uj3 = Ucurrent[k+1,j]            
 			if(k+2 < Nz):
-				uj4 = Ucurrent[k+2,j]
-
-			d2u_dx2 = (-u0k+16*u1k-30*ujk+16*u3k-u4k)/12.0
-			d2u_dz2 = (-uj0+16*uj1-30*ujk+16*uj3-uj4)/12.0
-			Ufuture[k,j] = (d2u_dx2+d2u_dz2)*(Dt*V[k,j]/Ds)**2
-			Ufuture[k,j] += 2*Ucurrent[k,j]-Uprevious[k,j]
+				uj4 = Ucurrent[k+2,j]		
+			
+			Ufuture[k,j] = (1.0/12)*(-u0k+16*u1k+16*u3k-u4k-uj0+16*uj1+16*uj3-uj4-60*ujk)*(Dt*V[k,j]/Ds)**2 +2*ujk-Uprevious[k,j]
