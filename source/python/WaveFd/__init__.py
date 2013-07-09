@@ -10,7 +10,7 @@ For example:.
 
 """
 
-from Wavelet import LinearSin, Sinc, Triangle, Ricker
+from Wavelet import RickerSource, LinearSin, Sinc, Triangle, Ricker
 from Imp1DLuWave import Imp1DLuWave
 #from Exp1DLaxWave import LaxWand1DWave
 from Imp2DLuWave import Imp2DLuWave, Imp2DLuSparseWave

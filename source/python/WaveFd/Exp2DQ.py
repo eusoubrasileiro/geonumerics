@@ -96,7 +96,7 @@ for i in range(0, numberiter):
     # source position center grid
     # smooth region around the center of the grid +3-3
     # exact analytical solution circular
-    dsm = 0
+    dsm = 3
     for nz in range(sz-dsm,sz+dsm+1,1):
         for nx in range(sx-dsm,sx+dsm+1,1):
             dz = nz - sz 
