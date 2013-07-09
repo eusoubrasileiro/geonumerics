@@ -33,8 +33,8 @@ class Imp2DLuWave(BaseWave2DField):
                  sx,
                  sz,
                  maxiter,
-                 nrec=1,
-                 wavelet=None,
+                 wavelet,
+                 nrec=1
                  ):
         r"""
         Initialize a new wave equation field implicit centered differences second order
@@ -46,11 +46,10 @@ class Imp2DLuWave(BaseWave2DField):
         * velocity : 2d velocity distribution
         * sx/sz    : source wavelet position in indexes (i, k)
         * maxiter  : total iterations
-        * nrec     : recording interval 1 equals time step
         * wavelet  : source wavelet function applied at the position (sx, sz)
-          must have sample rate equal to dt
+        * nrec     : recording interval 1 equals time step 
         """
-        super(Imp2DLuWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, nrec, wavelet)
+        super(Imp2DLuWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, wavelet, nrec)
         self.Uprevious = np.zeros([self.Nz, self.Nx])
 
 
@@ -147,7 +146,7 @@ class Imp2DLuWave(BaseWave2DField):
             self.mUtfactor = ln.lu_factor(self.mUt)
 
         # modification in the grid due source position
-        self.Source(self.tstep)
+        self.Ucurrent[self.Sk][self.Si] = self.Wavelet(tstep*self.Dt)   
         # As t is in [0, 1, 2] (2nd order)
         # time t in this case is Utime[2]
         # the independent term of the matrix, due the pressure field
@@ -167,11 +166,12 @@ class Imp2DLuWave(BaseWave2DField):
         
         return self.Ufuture
 
+
 from pysparse.sparse import spmatrix
 from pysparse.direct import umfpack
 
 
-class Imp2DLuSparseWave(BaseWave2DField):
+class Imp2DLuSparseWave(Imp2DLuWave):
     r"""
     Implicit wave equation constant density accoustic, 
     Finite differences:
@@ -186,59 +186,6 @@ class Imp2DLuSparseWave(BaseWave2DField):
         compared with the Imp2DLuWave matrix above. Or ~12*10^3 smaller  
 
     """
-    def __init__(self,
-                 nx,
-                 nz,
-                 ds,
-                 dt,
-                 velocity,
-                 sx,
-                 sz,
-                 maxiter,
-                 nrec=1,
-                 wavelet=None,
-                 ):
-        r"""
-        Initialize a new wave equation field implicit centered differences second order
-
-        * nx       : number of discretization in x
-        * nz       : number of discretization in z
-        * ds       : dx=dz=ds grid spacing
-        * dt       : time step - e.g. seconds
-        * velocity : 2d velocity distribution
-        * sx/sz    : source wavelet position in indexes (i, k)
-        * maxiter  : total iterations
-        * nrec     : recording interval 1 equals time step
-        * wavelet  : source wavelet function applied at the position (sx, sz)
-          must have sample rate equal to dt
-        """
-        super(Imp2DLuSparseWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, nrec, wavelet)
-        self.Uprevious = np.zeros([self.Nz, self.Nx])
-
-
-    def Gamma(self, k, i):
-        r"""
-        .. math:
-
-        \gamma = -4 -r^{-2}
-        """
-        return -(4 +self.R_(k, i)**2)
-
-    def R(self, k, i):
-        r"""
-        .. math:
-        
-         r = \frac{\Delta t  V_{jk}^n}{ \Delta s}        
-        """
-        return self.Dt * self.Vel[k][i]/ self.Ds
-
-    def R_(self, k, i):
-        r"""
-        .. math:
-        
-         r = \frac{\Delta s}{\Delta t  V_{jk}^n}        
-        """
-        return self.Ds /(self.Dt * self.Vel[k][i]) 
 
     def LinearSystem(self):
         r"""
@@ -269,24 +216,6 @@ class Imp2DLuSparseWave(BaseWave2DField):
         return self.mUt
 
 
-    def Independent(self):
-        r"""
-        Independent term
-        Depends on Gamma, velocity and pressure
-        """
-        #independent term, where the previous times goes in
-        self.vId = np.zeros([self.Nz*self.Nx])
-
-        # fill the independent vector
-        for Ln in range(0, self.Nz*self.Nx, 1):
-            # turn the indices to the one of original matrix
-            i = Ln%self.Nx
-            k = Ln/self.Nx
-            # boundary locked
-            self.vId[Ln] = (self.Uprevious[k][i]-2*self.Ucurrent[k][i])*(self.R_(k, i)**2)
-
-        return self.vId
-
     def SolveNextTime(self):
         r"""
         Calculate the next time (factorization)
@@ -301,7 +230,7 @@ class Imp2DLuSparseWave(BaseWave2DField):
             self.mUtLU = umfpack.factorize(self.mUt, strategy="UMFPACK_STRATEGY_SYMMETRIC")
             # gets the m factor from the solved system
         # modification in the grid due source position
-        self.Source(self.tstep)
+        self.Ucurrent[self.Sk][self.Si] = self.Wavelet(tstep*self.Dt)   
         # As t is in [0, 1, 2] (2nd order)
         # time t in this case is Utime[2]
         # the independent term of the matrix, due the pressure field

@@ -6,7 +6,7 @@ r"""
 
 import sys, copy
 import numpy as np
-from Wavelet import Triangle
+from Wavelet import RickerSource
 import time
 
 class BaseWave2DField(object):
@@ -36,8 +36,8 @@ class BaseWave2DField(object):
                  sx,
                  sz,
                  maxiter,
-                 nrec=1,
-                 wavelet=None,
+                 wavelet,
+                 nrec=1
                  ):
         r"""
         Initialize a new wave equation field
@@ -48,10 +48,9 @@ class BaseWave2DField(object):
         * dt       : time step - e.g. seconds
         * velocity : 2d velocity distribution
         * sx/sz    : source wavelet position in indexes (i, k)
-        * maxiter  : total iterations
-        * nrec     : recording interval 1 equals time step 
+        * maxiter  : total iterations        
         * wavelet  : source wavelet function applied at the position (sx, sz)
-          must have sample rate equal to dt
+        * nrec     : recording interval 1 equals time step 
         """
         self.Ds = ds
         self.Dt = dt
@@ -84,34 +83,47 @@ class BaseWave2DField(object):
         # if not put a constant velocity
         else:
             self.Vel[:][:] = velocity
-    
-        if(wavelet == None):         
+
+        # get global max and min        
+        self.vmin = self.Vel[0][0]
+        self.vmax = self.Vel[0][0]
+        for array in self.Vel:
+            vmin = array.min()
+            vmax = array.max()
+            if(vmin < self.vmin):
+                self.vmin = vmin  
+            if(vmax > self.vmax):
+                self.vmax = vmax
+
+        if not isinstance(wavelet, RickerSource):
+            raise Exception(wavelet, "not a supported wavelet class")          
             # using the principle of planar waves 
             # to set the source wavelet frequency               
-            minvelocity = self.Vel[0][0]
-            for array in self.Vel:
-                vmin = array.min()
-                if(minvelocity > vmin):
-                    minvelocity = vmin                
-            #default wavelet triangular
-            self.Fw = minvelocity/(2*self.Ds);    
-            self.Wavelet=10*Triangle(self.Fw,self.Dt)           
+            # minvelocity = self.Vel[0][0]
+            # for array in self.Vel:
+            #     vmin = array.min()
+            #     if(minvelocity > vmin):
+            #         minvelocity = vmin                
+            # #default wavelet triangular
+            # self.Fw = minvelocity/(2*self.Ds);    
+            # self.Wavelet=10*Triangle(self.Fw,self.Dt)          
+            # frequency of source is not that simple to set in a base class 
         
-        print "total wavelet time : %.1f miliseconds" % (self.Dt*np.size(self.Wavelet)*1000)
+        #print "total wavelet time : %.1f miliseconds" % (self.Dt*np.size(self.Wavelet)*1000)
 
-    def Source(self, tstep):
-        r"""
-        Set the source perturbation value at is position (Si, Sk) at a given 
-        iteration time step.
+    # def Source(self, tstep):
+    #     r"""
+    #     Set the source perturbation value at is position (Si, Sk) at a given 
+    #     iteration time step.
 
-        * tstep   :  given time step        
-        """
-        # no perturbation after source finished
-        if( tstep > np.size(self.Wavelet)-1):
-            return
+    #     * tstep   :  given time step        
+    #     """
+    #     # # no perturbation after source finished
+    #     # if( tstep > np.size(self.Wavelet)-1):
+    #     #     return
                     
-        # set at the current time field   
-        self.Ucurrent[self.Sk][self.Si] = self.Wavelet[tstep]
+    #     # set at the current time field   
+    #     self.Ufuture[self.Sk][self.Si] += self.Wavelet(tstep*self.Dt)
         
         
     def SolveNextTime(self):
@@ -257,7 +269,8 @@ class BaseWave1DField(object):
         # if not put a constant velocity
         else:
             self.Vel[:][:] = velocity
-    
+
+
         if(wavelet == None):         
             # using the principle of planar waves 
             # to set the source wavelet frequency               

@@ -18,7 +18,7 @@ class Exp2DWave(BaseWave2DField):
     * Very Slow : try using cython for loop said to be 8x faster!!!
     Something is wrong in the implementation, the convergence criteria is
     correct by Jing-Bo Chen. Problem is big gradients causing instability due
-    source. 
+    source?? 
     
     Convergence
      
@@ -37,8 +37,8 @@ class Exp2DWave(BaseWave2DField):
                 sx,
                 sz,
                 maxiter,
-                nrec=1,
-                wavelet=None):
+                wavelet,
+                nrec=1):
         r"""
         Initialize a new wave equation field explicit centered differences time
 
@@ -51,10 +51,10 @@ class Exp2DWave(BaseWave2DField):
         * maxiter  : total iterations
         * nrec     : recording interval 1 equals time step 
         * wavelet  : source wavelet function applied at the position (sx, sz)
-          must have sample rate equal to dt
         """
+
         # creates the constant density part first
-        super(Exp2DWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, nrec, wavelet)
+        super(Exp2DWave, self).__init__(nx, nz, ds, dt, velocity, sx, sz, maxiter, wavelet, nrec)
         # backward/forward differences in time, add previous time
         self.Uprevious = np.zeros([self.Nz, self.Nx])
         
@@ -63,6 +63,29 @@ class Exp2DWave(BaseWave2DField):
         if(dt > neededt):
             print "for stability the time step should be smaller than", neededt
             return 
+
+    def _NiquestSpatial(self):
+        r"""
+        Spatial niquest in wave number based on spatial sample rate
+        """
+        return 1.0/(2*self.Ds)
+
+    def _SpatialAlias(self):
+        r"""
+        Returns True or False
+        False if the maximum wavelength is bigger than Niquest so acceptable
+        True otherwise
+        """
+        print ((self.vmin/self.Wavelet.fc) < 1.0/self._NiquestSpatial())
+
+    def _GridPointsbyWavelenght(self):
+        r"""
+        Alford et all
+        measures the number of points (based on spatial sample rate)
+        by wave length. Wavelenght calculated from source and velocity
+        wlenght = velocity/frequency
+        """
+        return (self.vmin/self.Wavelet.fc)/self.Ds 
 
     def Stability(self):
         r"""
@@ -149,10 +172,27 @@ class Exp2DWave(BaseWave2DField):
         except :
                 self.tstep = 0
         
-        self.Source(self.tstep)   
-
         _cExp2DWave.SolveUfuture(self.Ufuture, self.Ucurrent, self.Uprevious, self.Vel, self.Nz, self.Nx, self.Ds, self.Dt)
+        #self.Ufuture[self.Sk][self.Si] += self.Wavelet(self.tstep*self.Dt)   
 
+        # source position center grid
+        # smooth region around the center of the grid +3-3
+        # exact analytical solution circular
+        # 2.5 wavelength is supose ( I am suposing) to be enought for the source
+        if(self.tstep*self.Dt < 2.5/self.Wavelet.fc):
+            dsm = 0
+            c = self.Vel[self.Sk][self.Si] # uses central velocity for exact solution
+            for nz in range(max(self.Sk-dsm,0),min(self.Sk+dsm+1,self.Nz)):
+                for nx in range(max(self.Si-dsm,0),min(self.Si+dsm+1,self.Nx)):
+                    dz = nz - self.Sk 
+                    dx = nx - self.Si
+                    t = self.tstep*self.Dt
+                    r = np.sqrt(dz**2+dx**2)
+                    if(nx == self.Si and nz == self.Sk):
+                        self.Ufuture[nz][nx] += self.Wavelet(t)
+                    else:        
+                        self.Ufuture[nz][nx] += self.Wavelet(t-r/c)/(2*np.pi*r)
+            
         # make the update in the time stack
         self.Uprevious = self.Ucurrent
         self.Ucurrent = self.Ufuture
