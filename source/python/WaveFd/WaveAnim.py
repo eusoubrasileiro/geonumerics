@@ -162,11 +162,16 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
     * vmax      : global maximum of snapshots
     """
     py.ion()
-    if(norm == True):
-        # get the maximum and minimum values
-        # to not blow the scale during the animation
-        vmax = vmin = snapshots[0][0][0]
-        for snapshot in snapshots:
+    #max index time and max index space
+    maxt = np.shape(snapshots)[0]
+    maxk = np.shape(snapshots)[1]
+    maxi = np.shape(snapshots)[2]    
+    if norm :
+        # get the maximum and minimum values of the last 5% 
+        # snapshots to not blow the scale during the animation
+        snaptmp = snapshots[-int(0.05*maxt):]
+        vmax = vmin = snaptmp[0][0][0]
+        for snapshot in snaptmp:
             for line in snapshot:
                 linemax = max(line)
                 linemin = min(line)
@@ -174,10 +179,8 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
                     vmax = linemax
                 if(linemin < vmin):
                     vmin = linemin
-    #max index time and max index space
-    maxt = np.shape(snapshots)[0]
-    maxk = np.shape(snapshots)[1]
-    maxi = np.shape(snapshots)[2]
+
+    print "vmin : ", vmin, "vmax : ", vmax
     # space axis starting at 0 in x and z (using y coz' plotting)
     # extents of the picture,
     xmin, xmax = 0, ds*maxi
@@ -204,8 +207,8 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
         # since its just math objects would be perfect
         # will be something like Wave1DAnim001.png
         py.savefig(filename+"{0:03d}".format(t)+'.png', dpi=150)
-        sys.stdout.write("\r progressing .. %.1f%%" %(100.0*float(t)/maxt))
-        sys.stdout.flush()
+        sys.stderr.write("\r progressing .. %.1f%%" %(100.0*float(t)/maxt))
+        sys.stderr.flush()
         py.clf()
     sys.stdout.write(" done! \n")
     py.hold(False)

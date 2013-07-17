@@ -38,8 +38,8 @@ class RickerSource(object):
         return  self.amp*(1-2*cx)*np.exp(-cx) 
 
 Nz = Nx = 80
-Dt = 0.0025
-Ds = 10.0
+Dt = 0.002
+Ds = 8.0
 numberiter = 300
 
 
@@ -56,8 +56,8 @@ fpeak = 0.5*fmax
 # fmax = c/(2.0*Ds)
 # fpeak = 1.0*fmax
 sourcewave = RickerSource(fpeak, 10.0, delay=1.0/fpeak)
-sx = 40
-sz = 40
+sx = 0
+sz = 0
 V = np.zeros([Nz, Nx]) 
 V[:][:] = c
 
@@ -93,24 +93,37 @@ for i in range(0, numberiter):
 
             Ufuture[k][j] = 2*ujk-Uprevious[k][j]+(1.0/12.0)*(-u0k+16*u1k+16*u3k-u4k -uj0+16*uj1+16*uj3-uj4 -60*ujk)*(Dt*V[k][j]/Ds)**2
 
+    # try adding the source to the laplacian
+
+    # in the second loop you add the source to the laplacian
+    # then finally you make the step forward
+
+    # then finally  and then calculate the next step.
+    # you can precalculate all weights as well.
+    # add implementation using density could be nice
+    # madagascar tip paul sava uses linear 
+    # interpolation around the source and just 1 as dsm=1??
+
+
     # source position center grid
     # smooth region around the center of the grid +3-3
     # exact analytical solution circular
-    dsm = 3
-    for nz in range(sz-dsm,sz+dsm+1,1):
-        for nx in range(sx-dsm,sx+dsm+1,1):
-            dz = nz - sz 
-            dx = nx - sx
-            t = i*Dt
-            r = np.sqrt(dz**2+dx**2)
-            if(r == 0):
-                Ufuture[nz][nx] += sourcewave(t-r/c)
-            else:
-                Ufuture[nz][nx] += sourcewave(t-r/c)/(2*np.pi*r)
+    if(i*Dt < 2.0/sourcewave.fc):
+        dsm = 2
+        for nz in range(max(sz-dsm,0),min(sz+dsm+1, Nz)):
+            for nx in range(max(sx-dsm,0),min(sx+dsm+1, Nx)):
+                dz = nz - sz 
+                dx = nx - sx
+                t = i*Dt
+                r = np.sqrt(dz**2+dx**2)
+                if(r == 0):
+                    Ufuture[nz][nx] -= sourcewave(t)
+                else:
+                    Ufuture[nz][nx] -= sourcewave(t-r/c)/(2*np.pi*r)
 
     # make the update in the time stack
     Uprevious = Ucurrent
     Ucurrent = Ufuture
     Simulation[i] = Ucurrent
 
-    sys.stdout.write("\r %d" %(i) )
+    sys.stderr.write("\r %d" %(i) )
