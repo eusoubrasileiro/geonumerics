@@ -38,15 +38,16 @@ class RickerSource(object):
         return  self.amp*(1-2*cx)*np.exp(-cx) 
 
 Nz = Nx = 80
-Dt = 0.002
-Ds = 8.0
+Dt = 0.5
+Ds = 1.0
 numberiter = 300
 
 
 Uprevious = np.zeros([Nz, Nx]) # previous time
 Ucurrent = np.zeros([Nz, Nx]) # current time
 Ufuture = np.zeros([Nz, Nx]) # future time
-c = 2000.0 #constant
+Laplace = np.zeros([Nz, Nx])
+c = 1.0 #constant
 # condition for not having dispersion (alias in space)
 # d hale
 fmax = c/(10.0*Ds)
@@ -55,7 +56,7 @@ fpeak = 0.5*fmax
 # Koslov alias plane criteria (c must be the min value)
 # fmax = c/(2.0*Ds)
 # fpeak = 1.0*fmax
-sourcewave = RickerSource(fpeak, 10.0, delay=1.0/fpeak)
+sourcewave = RickerSource(fpeak, 1.0, delay=1.0/fpeak)
 sx = 0
 sz = 0
 V = np.zeros([Nz, Nx]) 
@@ -91,20 +92,11 @@ for i in range(0, numberiter):
             if(k+2 < Nz):
                 uj4 = Ucurrent[k+2][j]
 
-            Ufuture[k][j] = 2*ujk-Uprevious[k][j]+(1.0/12.0)*(-u0k+16*u1k+16*u3k-u4k -uj0+16*uj1+16*uj3-uj4 -60*ujk)*(Dt*V[k][j]/Ds)**2
-
-    # try adding the source to the laplacian
-
-    # in the second loop you add the source to the laplacian
-    # then finally you make the step forward
-
-    # then finally  and then calculate the next step.
-    # you can precalculate all weights as well.
-    # add implementation using density could be nice
-    # madagascar tip paul sava uses linear 
-    # interpolation around the source and just 1 as dsm=1??
+            Laplace[k][j] = (1.0/12.0)*(-u0k+16*u1k+16*u3k-u4k -uj0+16*uj1+16*uj3-uj4 -60*ujk)/(Ds**2)
 
 
+
+    # makes solution prettier!! 
     # source position center grid
     # smooth region around the center of the grid +3-3
     # exact analytical solution circular
@@ -116,10 +108,13 @@ for i in range(0, numberiter):
                 dx = nx - sx
                 t = i*Dt
                 r = np.sqrt(dz**2+dx**2)
-                if(r == 0):
-                    Ufuture[nz][nx] -= sourcewave(t)
+                if(r == 0): # must be negative to propagate the exact wavelet.
+                    Laplace[nz][nx] -= sourcewave(t)*(c**2)
                 else:
-                    Ufuture[nz][nx] -= sourcewave(t-r/c)/(2*np.pi*r)
+                    Laplace[nz][nx] -= (c**2)*sourcewave(t-r/c)/(2*np.pi*r)
+
+
+    Ufuture = 2*Ucurrent-Uprevious+Laplace*(Dt*c)**2
 
     # make the update in the time stack
     Uprevious = Ucurrent
