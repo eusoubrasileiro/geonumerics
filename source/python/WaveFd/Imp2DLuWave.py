@@ -129,6 +129,10 @@ class Imp2DLuWave(BaseWave2DField):
             # boundary locked
             self.vId[Ln] = (self.Uprevious[k][i]-2*self.Ucurrent[k][i])*(self.R_(k, i)**2)
 
+        # modification in the grid due source position
+        self.vId[self.Sk*self.Nx+self.Si] -= self.Wavelet(self.tstep*self.Dt)*(self.Ds)**2 
+
+
         return self.vId
 
     def SolveNextTime(self):
@@ -145,8 +149,6 @@ class Imp2DLuWave(BaseWave2DField):
             # gets the m factor from the solved system
             self.mUtfactor = ln.lu_factor(self.mUt)
 
-        # modification in the grid due source position
-        self.Ucurrent[self.Sk][self.Si] = self.Wavelet(tstep*self.Dt)   
         # As t is in [0, 1, 2] (2nd order)
         # time t in this case is Utime[2]
         # the independent term of the matrix, due the pressure field
@@ -161,8 +163,8 @@ class Imp2DLuWave(BaseWave2DField):
         # after  [t-1, t,  t+1]
         # so t-2 receive t-1 and etc.
         # make the update in the time stack
-        self.Uprevious = self.Ucurrent
-        self.Ucurrent = self.Ufuture        
+        self.Uprevious[:][:] = self.Ucurrent[:][:]
+        self.Ucurrent[:][:] = self.Ufuture[:][:]        
         
         return self.Ufuture
 
@@ -213,6 +215,7 @@ class Imp2DLuSparseWave(Imp2DLuWave):
             if(k+1 < self.Nz): #u(x,z+1)
                 self.mUt[Ln,Ln+self.Nx]= 1.0
 
+        
         return self.mUt
 
 
@@ -229,8 +232,7 @@ class Imp2DLuSparseWave(Imp2DLuWave):
             self.LinearSystem()
             self.mUtLU = umfpack.factorize(self.mUt, strategy="UMFPACK_STRATEGY_SYMMETRIC")
             # gets the m factor from the solved system
-        # modification in the grid due source position
-        self.Ucurrent[self.Sk][self.Si] = self.Wavelet(tstep*self.Dt)   
+
         # As t is in [0, 1, 2] (2nd order)
         # time t in this case is Utime[2]
         # the independent term of the matrix, due the pressure field
@@ -238,14 +240,14 @@ class Imp2DLuSparseWave(Imp2DLuWave):
         result = np.empty(self.Nx*self.Nz)
         self.mUtLU.solve(v, result)
         # reshape the vector to become a matrix again
-        self.Ufuture = np.reshape(result, (self.Nz, self.Nx))
+        self.Ufuture = np.reshape(result, (self.Nz, self.Nx))        
 
         # make the update in the time stack
         # before [t-2, t-1,  t]
         # after  [t-1, t,  t+1]
         # so t-2 receive t-1 and etc.
         # make the update in the time stack
-        self.Uprevious = self.Ucurrent
-        self.Ucurrent = self.Ufuture        
+        self.Uprevious[:][:] = self.Ucurrent[:][:]
+        self.Ucurrent[:][:] = self.Ufuture[:][:]        
         
         return self.Ufuture

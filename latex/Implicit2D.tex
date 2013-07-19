@@ -38,6 +38,18 @@ Rearranging to solve in matrix form for the unknowns $ U^n $ (time n) around $U_
 
 \textit{Note:} Centered differences in  (\ref{2}) would reach a explicit method with stability restrictions. So although (\ref{2}) is first order in time the analyses in the end shows it's unconditionally stable.
 
+\textit{Implementation Note} Including the source term $S(t)$ modifies equation (\ref{4}) :
+
+$$ \frac{\partial^2 U}{\partial t^2} \frac{1}{V^2} = \nabla^2 U + S(t)  $$
+
+\begin{eqnarray}
+r^{-2} \left( U_{jk}^{n-2} -2 U_{jk}^{n-1} - S(t) V_{jk}^2 {\Delta t}^2 \right) =
+  U_{j-1k}^n + \gamma \  U_{jk}^n + U_{j+1k}^n + U_{jk+1}^n + U_{jk-1}^n \nonumber  \\ 
+r^{-2} \left( U_{jk}^{n-2} -2 U_{jk}^{n-1} \right) - S(t) {\Delta s}^2 =
+  U_{j-1k}^n + \gamma \  U_{jk}^n + U_{j+1k}^n + U_{jk+1}^n + U_{jk-1}^n \nonumber  \nonumber 
+\end{eqnarray}
+
+
 \newpage
 
 Rewritting (\ref{3}) to a simplified form, introducing some new variables: 

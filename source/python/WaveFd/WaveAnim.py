@@ -121,20 +121,45 @@ def Wave1DAnim(snapshots, ds, dt, vel=None, filename='wave1danim', anim="gif", f
     #clear after creating new files
 
 
-def Wave2DShow(ufield, vel, extent, vmin=None, vmax=None):
+def Wave2DShow(ufield, ds, vel=None, vmin=None, vmax=None):
     r"""
     Show a 2D pressure field at some instant of time.
     As background is shown velocity field.
     Same dimension as ufield.
 
     * ufield    : 2d pressure field at an instant of time
+    * ds        : space discretization
     * vel       : 2d background velocity field
-    * extent    : (xmin, xmax, ymax, ymin) imshow limits
     * vmin/vmax : vmin/vmax of imshow
     """
-    # velocity / pressure
+    #max index time and max index space
+    maxt = np.shape(snapshots)[0]
+    maxk = np.shape(snapshots)[1]
+    maxi = np.shape(snapshots)[2]    
+    if vmin == None or vmax == None :
+        # get the maximum and minimum values of the last 5% 
+        # snapshots to not blow the scale during the animation
+        snaptmp = snapshots[-int(0.05*maxt):]
+        vmax = vmin = snaptmp[0][0][0]
+        for snapshot in snaptmp:
+            for line in snapshot:
+                linemax = max(line)
+                linemin = min(line)
+                if(linemax > vmax):
+                    vmax = linemax
+                if(linemin < vmin):
+                    vmin = linemin
+
+    print "vmin : ", vmin, "vmax : ", vmax
+    # space axis starting at 0 in x and z (using y coz' plotting)
+    # extents of the picture,
+    xmin, xmax = 0, ds*maxi
+    ymin, ymax = 0, ds*maxk
+    extent= xmin, xmax, ymax, ymin
     py.hold(True)
-    py.imshow(vel, interpolation='bilinear', cmap=cm.jet, extent=extent,  origin='upper', aspect='auto')
+    if not vel == None:
+        py.imshow(vel, interpolation='bilinear', cmap=cm.jet, extent=extent,  origin='upper', aspect='auto')
+
     py.imshow(ufield, interpolation='bilinear', cmap=cm.Greys_r, alpha=0.8, extent=extent, origin='upper', aspect='auto', vmin=vmin, vmax=vmax)
     py.hold(False)
     # optional cmap=cm.jet, apect='auto' adjust aspect to the previous plot
@@ -144,7 +169,7 @@ def Wave2DShow(ufield, vel, extent, vmin=None, vmax=None):
     #cb.set_label("velocity (m/s)")
 
 
-def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=None, vmax=None, anim="avi", fps=15):
+def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=True, vmin=None, vmax=None, anim="avi", fps=15):
     r"""
     Create an animation file from a matrix resulting from a simulation of a 2d wave field.
     Creates many intermediate files to achieve that, uses ImageMagick.
@@ -180,7 +205,7 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
                 if(linemin < vmin):
                     vmin = linemin
 
-    print "vmin : ", vmin, "vmax : ", vmax
+        print "vmin : ", vmin, "vmax : ", vmax
     # space axis starting at 0 in x and z (using y coz' plotting)
     # extents of the picture,
     xmin, xmax = 0, ds*maxi
@@ -196,8 +221,11 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=None, vmin=No
     # horizontalalignment='right'
     _ClearTempImages(filename, "png") # clear any previous existing
     for t in range(maxt):
-        Wave2DShow(snapshots[t], vel, extent, vmin, vmax)
         py.hold(True)
+        py.imshow(vel, interpolation='bilinear', cmap=cm.jet, extent=extent,  origin='upper', aspect='auto')
+        py.imshow(snapshots[t], interpolation='bilinear', cmap=cm.Greys_r, alpha=0.8, extent=extent, origin='upper', aspect='auto', vmin=vmin, vmax=vmax)
+        # optional cmap=cm.jet, apect='auto' adjust aspect to the previous plot
+        py.show()            
         # draw time
         py.text(posx, posz,
                 "{0:1.5f}".format(t*dt),

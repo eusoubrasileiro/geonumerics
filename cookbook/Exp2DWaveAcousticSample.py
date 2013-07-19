@@ -1,6 +1,6 @@
 r"""
 
-4th order explicit space test question
+Once a question, now a cookbook example. (4th order explicit space). 
 
 Convergence
  
@@ -19,9 +19,10 @@ Where w_a are the centered differences weights
 Under limits.
 
 """
-
 import numpy as np
 import sys
+sys.path.append('../source/python');
+import WaveAnim
 
 class RickerSource(object):
     r"""
@@ -120,3 +121,12 @@ for i in range(0, numberiter):
     Simulation[i] = Ucurrent
 
     sys.stderr.write("\r %d" %(i) )
+
+
+print fpeak
+print Ds, Dt
+print numpy.sqrt(3.0/8.0), c*Dt/Ds
+movie = Simulation
+for i in range(10):
+    figure()
+    WaveAnim.Wave2DShow(Simulation, ds, vel=None, vmin=None, vmax=None)
