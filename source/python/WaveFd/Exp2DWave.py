@@ -58,12 +58,14 @@ class Exp2DWave(BaseWave2DField):
         # backward/forward differences in time, add previous time
         self.Uprevious = np.zeros([self.Nz, self.Nx])
         
-        neededt = self.Stability()
+        neededt = self._MaxDt()
         
         if(dt > neededt):
             print "for stability the time step should be smaller than", neededt
             return 
-
+        
+        self._Summary()
+        
     def _NiquestSpatial(self):
         r"""
         Spatial niquest in wave number based on spatial sample rate
@@ -87,7 +89,18 @@ class Exp2DWave(BaseWave2DField):
         """
         return (self.vmin/self.Wavelet.fc)/self.Ds 
 
-    def Stability(self):
+    def _Summary(self):
+        r"""
+        Summary all information for this simulation
+        """
+        print "R :", self.vmax*self.Dt/self.Ds, " of allowed < : ", np.sqrt(3)/np.sqrt(8)
+        print "Dt :", self.Dt, " of allowed < : ", self._MaxDt()
+        print "Points by wavelenght: ", self._GridPointsbyWavelenght(), " recommended > 5"
+        print "Is there spatial Alias (based on frequency)? ", self._SpatialAlias()
+        
+        return
+
+    def _MaxDt(self):
         r"""
         Using Von neuman stability analysis
         
@@ -104,66 +117,12 @@ class Exp2DWave(BaseWave2DField):
         
         for k in range(self.Nz):
             for j in range(self.Nx):
-                if ( vmax < self.Vel[k][j]):
-                    vmax =  self.Vel[k][j]
+                if ( vmax < self.Vel[k, j]):
+                    vmax =  self.Vel[k, j]
         
         sumweights = np.abs(centered2ndfiniteweight4th).sum()
         
         return 2*self.Ds/(vmax*np.sqrt(sumweights))
-
-    # def NextTime(self, k, i):
-
-    #     u = self.Ucurrent
-    #     # u0k u1k*uik*u3k u4k     
-    #     # Boundary fixed 0 outside        
-    #     u0k=u1k=u3k=u4k=0.0
-    #     ui0=ui1=ui3=ui4=0.0
-    #     uik = u[k][i]      
-          
-    #     if(i-2 > -1):
-    #         u0k = u[k][i-2]
-    #     if(i-1 > -1):
-    #         u1k = u[k][i-1]
-    #     if(i+1 < self.Nx):
-    #         u3k = u[k][i+1]            
-    #     if(i+2 < self.Nx):
-    #         u4k = u[k][i+2]
-    #     if(k-2 > -1):
-    #         ui0 = u[k-2][i]
-    #     if(k-1 > -1):
-    #         ui1 = u[k-1][i]
-    #     if(k+1 < self.Nz):
-    #         ui3 = u[k+1][i]            
-    #     if(k+2 < self.Nz):
-    #         ui4 = u[k+2][i]
-
-    #     d2u_dx2 = (-u0k+16*u1k-30*uik+16*u3k-u4k)/12.0
-    #     d2u_dz2 = (-ui0+16*ui1-30*uik+16*ui3-ui4)/12.0
-    #     Uikfuture = (d2u_dx2+d2u_dz2)*(self.Dt*self.Vel[k][i]/self.Ds)**2
-    #     Uikfuture += 2*self.Ucurrent[k][i]-self.Uprevious[k][i]
-         
-    #     return Uikfuture
-
-
-    # def SolveNextTime(self):
-
-    #     try:
-    #             self.tstep += 1
-    #     except :
-    #             self.tstep = 0
-        
-    #     self.Source(self.tstep)            
-
-    #     for k in range(self.Nz):
-    #         for j in range(self.Nx):
-    #             self.Ufuture[k][j] = self.NextTime(k, j)
-
-    #     # make the update in the time stack
-    #     self.Uprevious = self.Ucurrent
-    #     self.Ucurrent = self.Ufuture
-    
-    #     return self.Ufuture
-
 
     def SolveNextTime(self):
 
@@ -173,15 +132,15 @@ class Exp2DWave(BaseWave2DField):
                 self.tstep = 0
         
         _cExp2DWave.SolveUfuture(self.Ufuture, self.Ucurrent, self.Uprevious, self.Vel, self.Nz, self.Nx, self.Ds, self.Dt)
-        #self.Ufuture[self.Sk][self.Si] += self.Wavelet(self.tstep*self.Dt)   
 
         # source position center grid
         # smooth region around the center of the grid +3-3
         # exact analytical solution circular
-        # 2.5 wavelength is supose ( I am suposing) to be enought for the source
+        # 2.5 wavelength is enough for the source
         if(self.tstep*self.Dt < 2.5/self.Wavelet.fc):
-            dsm = 0
+            dsm = 2
             c = self.Vel[self.Sk][self.Si] # uses central velocity for exact solution
+            R2 = (c*self.Dt)**2
             for nz in range(max(self.Sk-dsm,0),min(self.Sk+dsm+1,self.Nz)):
                 for nx in range(max(self.Si-dsm,0),min(self.Si+dsm+1,self.Nx)):
                     dz = nz - self.Sk 
@@ -189,13 +148,13 @@ class Exp2DWave(BaseWave2DField):
                     t = self.tstep*self.Dt
                     r = np.sqrt(dz**2+dx**2)
                     if(nx == self.Si and nz == self.Sk):
-                        self.Ufuture[nz][nx] += self.Wavelet(t)
+                        self.Ufuture[nz,nx] -= R2*self.Wavelet(t)
                     else:        
-                        self.Ufuture[nz][nx] += self.Wavelet(t-r/c)/(2*np.pi*r)
+                        self.Ufuture[nz,nx] -= R2*self.Wavelet(t-r/c)/(2*np.pi*r)
             
         # make the update in the time stack
-        self.Uprevious = self.Ucurrent
-        self.Ucurrent = self.Ufuture
+        self.Uprevious[:][:] = self.Ucurrent[:][:]
+        self.Ucurrent[:][:] = self.Ufuture[:][:]
     
         return self.Ufuture
 

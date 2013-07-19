@@ -10,23 +10,20 @@
 
 \textbf{Explicit 2D acoustic wave equation }
 
-The scalar wave equation, a fluid medium with variable velocity, is defined by:
+The scalar wave equation, a fluid medium with variable velocity, is defined by (\ref{1}) Where $U$ and $V$ represents the pressure (displacement) and velocity fields and S(t) the source, and can be simplified in (\ref{2}) for 2D case:
 
-\[ \frac{\partial^2 U}{\partial t^2} \frac{1}{V^2}= \nabla^2 U + S(t)\] 
-
-Where $U$ and $V$ represents the pressure (displacement) and velocity fields. For 2D case it gets simplified to:
-
-\begin{equation}
-\frac{\partial^2 U}{\partial t^2} = V^2 \left( \frac{\partial^2 U}{\partial x^2}+ \frac{\partial^2 U}{\partial z^2} +S(t) \right)
-\label{1}
-\end{equation}
+\begin{eqnarray}
+\frac{\partial^2 U}{\partial t^2} \frac{1}{V^2} &=& \nabla^2 U + S(t) \label{1} \\
+\frac{\partial^2 U}{\partial t^2} &=& V^2 \left( \frac{\partial^2 U}{\partial x^2}+ \frac{\partial^2 U}{\partial z^2} +S(t) \right)
+\label{2}
+\end{eqnarray}
 
 From equation (\ref{1}) we can approximate derivatives by Taylor series, manipulating we can reach backward differences in time and centered in space first and second order; using $Dx=Dz=Ds$, remember that $j=jDs$, $k=kDs$ and $n=nDt$.
 
 \begin{multline}
 U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk} }{\Delta s} \right) ^2 \left(  \sum_{a=-N}^N w_a U_{j+a k}^n + \sum_{a=-N}^N w_a U_{j k+a}^n +S_{jk}^n {\Delta s}^2 \right) + 2 U_{jk}^{n} - U_{jk}^{n-1}  \\
 U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2   \left[ \sum_{a=-N}^N  w_a \left( U_{j+a k}^n + U_{j k+a}^n \right) \right] + S_{jk}^n {\Delta t}^2 V_{jk}^2 + 2 U_{jk}^{n} - U_{jk}^{n-1} \\
-U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2  \left[ \sum_{a=-N}^N  w_a \left( U_{j+a k}^n + U_{j k+a}^n \right) + S_{jk}^n {\Delta s}^2\right] + 2 U_{jk}^{n} - U_{jk}^{n-1} \label{1}
+U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2  \left[ \sum_{a=-N}^N  w_a \left( U_{j+a k}^n + U_{j k+a}^n \right) + S_{jk}^n {\Delta s}^2\right] + 2 U_{jk}^{n} - U_{jk}^{n-1} \label{3}
 \end{multline}
 
 For forth order space, we have $N=2$ and $w$ is:
@@ -38,14 +35,14 @@ Where, $ R $ must allways be bounded by the stability criteria.
 
 Forth order schema :
 
-$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2/12(1+16+30+16+1)}} \implies \Delta t \leq \frac{ \Delta s \sqrt{6}}{ V 4} = \frac{ \Delta s \sqrt{3}}{ V 2}$$
+$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2/12(1+16+30+16+1)}} \implies \Delta t \leq \frac{ \Delta s \sqrt{8}}{ V 3} = \frac{ \Delta s \sqrt{8}}{ V 3}$$
 
 Notes regarding implementation:
 
 \begin{itemize}
 \item Numerical aproximations turn the $R = \frac{\Delta t  V_{jk}}{\Delta s}$ in higher than accepted deppending on the way the sums and products are done
 \item The Laplacian should not be contaminated, should just multiply by R.
-\item The last two lines in the equation inclunding equation (\ref{1}) are acceptable implementations. Though the laplacian isolated from the source term conserves the original source amplitude. 
+\item The last two lines in the equation inclunding equation (\ref{1}) are acceptable implementations.
 \end{itemize}
  
 

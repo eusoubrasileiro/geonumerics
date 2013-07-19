@@ -12,7 +12,7 @@ import numpy as np
 import PIL
 from WaveFd.Imp2DLuWave import Imp2DLuSparseWave
 from WaveFd import WaveAnim
-from WaveFd.Wavelet import Triangle
+from WaveFd.Wavelet import RickerSource
 # loading velocity from wedge image file
 filename='Wedge160x400.png'
 img = PIL.Image.open(filename)
@@ -24,8 +24,8 @@ velocity[:][velocity[:] == 0.0] = 2500.0
 velocity[:][velocity[:] == 9.0] = 4500.0
 print np.shape(velocity)
 samplerate=0.001
-triangle = Triangle(100.0, samplerate)
-wd2d = Imp2DLuSparseWave(400, 160, 10, samplerate, velocity, 225, 0, 1000, wavelet=triangle)
+ricker = RickerSource(100.0, 10.0, 1./100.0)
+wd2d = Imp2DLuSparseWave(400, 160, 10, samplerate, velocity, 225, 0, 1000, wavelet=ricker)
 movie= wd2d.Simulate()
 del wd2d # just cleaning up
 movie = np.save('Imp2DWedge_400x160x1000.npy', movie) # just for preservation save it also

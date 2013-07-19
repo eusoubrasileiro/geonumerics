@@ -174,7 +174,7 @@ class BaseWave2DField(object):
         for i in range(1, self.MaxIter, 1):
             self.SolveNextTime()
             if(i%self.Nrec==0): # every n'th Nrec
-                movie[snapiter] = self.Ucurrent
+                movie[snapiter][:][:] = self.Ucurrent[:][:]
                 snapiter+=1
             sys.stdout.write("\r progressing .. %.1f%%" %(100.0*float(i)/self.MaxIter))
             sys.stdout.flush()        
