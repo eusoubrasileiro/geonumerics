@@ -45,6 +45,7 @@ class RickerSource(object):
 from Filters import SincLowPass, WindowHann, FilterSize
 
 # default relative bandwidth transition for defining wavelet size
+# need to correct this, nothing to do 
 RBTW = 0.40
 
 

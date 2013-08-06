@@ -3,7 +3,7 @@ r"""
 Manipulation utilities and others
 
 """
-import Image
+from PIL import Image
 import numpy as np
 
 

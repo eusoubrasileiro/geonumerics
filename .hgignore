@@ -14,3 +14,4 @@ doc/build*
 *.aux
 *.log
 *.toc
+cookbook/data
