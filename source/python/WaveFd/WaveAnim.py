@@ -77,14 +77,8 @@ def Wave1DAnim(snapshots, ds, dt, vel=None, filename='wave1danim', anim="gif", f
     maxk = np.shape(snapshots)[1]
     # get the maximum and minimum u value to not blow the scale
     # during the movie
-    ymax = ymin = snapshots[0][0]
-    for snapshot in snapshots:
-        ymaxi = max(snapshot)
-        ymini = min(snapshot)
-        if( ymaxi > ymax ):
-            ymax = ymaxi
-        if( ymini < ymin ):
-            ymin = ymini
+    ymax =  snapshots.max()
+    ymin = snapshots.min()
     # extents of the picture x starts at 0
     xmin, xmax = 0, maxk*ds
     extent= xmin, xmax, ymin, ymax
@@ -136,19 +130,6 @@ def Wave2DShow(ufield, ds, vel=None, vmin=None, vmax=None):
     maxt = np.shape(snapshots)[0]
     maxk = np.shape(snapshots)[1]
     maxi = np.shape(snapshots)[2]    
-    if vmin == None or vmax == None :
-        # get the maximum and minimum values of the last 5% 
-        # snapshots to not blow the scale during the animation
-        snaptmp = snapshots[-int(0.05*maxt):]
-        vmax = vmin = snaptmp[0][0][0]
-        for snapshot in snaptmp:
-            for line in snapshot:
-                linemax = max(line)
-                linemin = min(line)
-                if(linemax > vmax):
-                    vmax = linemax
-                if(linemin < vmin):
-                    vmin = linemin
 
     print "vmin : ", vmin, "vmax : ", vmax
     # space axis starting at 0 in x and z (using y coz' plotting)
@@ -194,16 +175,11 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=True, vmin=No
     if norm :
         # get the maximum and minimum values of the last 5% 
         # snapshots to not blow the scale during the animation
+        # get the maximum and minimum values of the last 5% 
+        # snapshots to not blow the scale during the animation
         snaptmp = snapshots[-int(0.05*maxt):]
-        vmax = vmin = snaptmp[0][0][0]
-        for snapshot in snaptmp:
-            for line in snapshot:
-                linemax = max(line)
-                linemin = min(line)
-                if(linemax > vmax):
-                    vmax = linemax
-                if(linemin < vmin):
-                    vmin = linemin
+        vmax = snaptmp.max()
+        vmin = snaptmp.min()
 
         print "vmin : ", vmin, "vmax : ", vmax
     # space axis starting at 0 in x and z (using y coz' plotting)
@@ -220,7 +196,7 @@ def Wave2DAnim(snapshots, ds, dt, vel, filename='wave2danim', norm=True, vmin=No
     # verticalalignment='top',
     # horizontalalignment='right'
     _ClearTempImages(filename, "png") # clear any previous existing
-    for t in range(maxt):
+    for t in xrange(maxt):
         py.hold(True)
         py.imshow(vel, interpolation='bilinear', cmap=cm.jet, extent=extent,  origin='upper', aspect='auto')
         py.imshow(snapshots[t], interpolation='bilinear', cmap=cm.Greys_r, alpha=0.8, extent=extent, origin='upper', aspect='auto', vmin=vmin, vmax=vmax)

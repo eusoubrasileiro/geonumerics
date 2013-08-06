@@ -11,14 +11,8 @@ class Exp2DWave(BaseWave2DField):
     Finite differences:
 
     * 4th error order centered in space
-    * 1st error order backward in time
-
-    .. todo::
-    
-    * Very Slow : try using cython for loop said to be 8x faster!!!
-    Something is wrong in the implementation, the convergence criteria is
-    correct by Jing-Bo Chen. Problem is big gradients causing instability due
-    source?? 
+    * 1st error order backward in time  
+    * Very very fast compared with implicit solution (using cython for loop)
     
     Convergence
      
@@ -97,7 +91,7 @@ class Exp2DWave(BaseWave2DField):
         print "Dt :", self.Dt, " of allowed < : ", self._MaxDt()
         print "Points by wavelenght: ", self._GridPointsbyWavelenght(), " recommended > 5"
         print "Is there spatial Alias (based on frequency)? ", self._SpatialAlias()
-        
+        print "finished wavelet iteration", int((2.5/self.Wavelet.fc)/self.Dt)
         return
 
     def _MaxDt(self):
@@ -113,16 +107,9 @@ class Exp2DWave(BaseWave2DField):
         * Returns maximum value allowed for \Delta t
         """
         
-        vmax = 0.0
-        
-        for k in range(self.Nz):
-            for j in range(self.Nx):
-                if ( vmax < self.Vel[k, j]):
-                    vmax =  self.Vel[k, j]
-        
         sumweights = np.abs(centered2ndfiniteweight4th).sum()
         
-        return 2*self.Ds/(vmax*np.sqrt(sumweights))
+        return 2*self.Ds/(self.vmax*np.sqrt(sumweights))
 
     def SolveNextTime(self):
 
@@ -130,7 +117,8 @@ class Exp2DWave(BaseWave2DField):
                 self.tstep += 1
         except :
                 self.tstep = 0
-        
+
+        #  CYTHON!        
         _cExp2DWave.SolveUfuture(self.Ufuture, self.Ucurrent, self.Uprevious, self.Vel, self.Nz, self.Nx, self.Ds, self.Dt)
 
         # source position center grid
@@ -138,7 +126,7 @@ class Exp2DWave(BaseWave2DField):
         # exact analytical solution circular
         # 2.5 wavelength is enough for the source
         if(self.tstep*self.Dt < 2.5/self.Wavelet.fc):
-            dsm = 2
+            dsm = 4
             c = self.Vel[self.Sk][self.Si] # uses central velocity for exact solution
             R2 = (c*self.Dt)**2
             for nz in range(max(self.Sk-dsm,0),min(self.Sk+dsm+1,self.Nz)):
@@ -158,4 +146,6 @@ class Exp2DWave(BaseWave2DField):
     
         return self.Ufuture
 
-#  CYTHON!
+    def Clean(self):
+        del self.Ufuture, self.Ucurrent, self.Ufuture, self.Vel
+

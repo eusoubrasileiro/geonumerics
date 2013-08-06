@@ -13,7 +13,8 @@ For example:.
 from Wavelet import RickerSource, LinearSin, Sinc, Triangle, Ricker
 from Imp1DLuWave import Imp1DLuWave
 #from Exp1DLaxWave import LaxWand1DWave
-from Imp2DLuWave import Imp2DLuWave, Imp2DLuSparseWave
+from Imp2DLuWave import Imp2DLuWave as _Imp2DLuWave
+from Imp2DLuWave import Imp2DLuSparseWave
 from WaveAnim import Wave1DAnim, Wave2DAnim, Wave1DPlot, Wave2DShow
 from Exp2DFourierWave import Exp2DFourierWave
 import Exp2DWave

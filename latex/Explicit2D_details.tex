@@ -10,7 +10,7 @@
 
 \textbf{Explicit 2D acoustic wave equation }
 
-The scalar wave equation, a fluid medium with variable velocity, is defined by (\ref{1}) Where $U$ and $V$ represents the pressure (displacement) and velocity fields and S(t) the source, and can be simplified in (\ref{2}) for 2D case:
+The scalar wave equation, a fluid medium with variable velocity, is defined by (\ref{1}) Where $U$ and $V$ represents the pressure (or scalar displacement) and velocity fields and S(t) the source, and can be simplified in (\ref{2}) for 2D case:
 
 \begin{eqnarray}
 \frac{\partial^2 U}{\partial t^2} \frac{1}{V^2} &=& \nabla^2 U + S(t) \label{1} \\
@@ -31,19 +31,27 @@ $$ w = \frac{1}{12} [-1, 16, -30, 16, -1] $$
 
 Where, $ R $ must allways be bounded by the stability criteria.
 
-\[ R = \frac{\Delta t  V_{jk}}{\Delta s} \]
+\[ R = \frac{\Delta t  V_{max}}{\Delta s} \]
 
-Forth order schema :
+Where $V_{max}$ is the maximum velocity.
 
-$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2/12(1+16+30+16+1)}} \implies \Delta t \leq \frac{ \Delta s \sqrt{8}}{ V 3} = \frac{ \Delta s \sqrt{8}}{ V 3}$$
+Simplified from Chen [2] the forth order schema requires :
+
+$$ \Delta t \leq \frac{2 \Delta s}{ V_{max} \sqrt{2/12(1+16+30+16+1)}} \implies \Delta t \leq \frac{ \Delta s \sqrt{3}}{ V_{max} \sqrt{8}} = \frac{ \Delta s \sqrt{3}}{ V_{max} \sqrt{8}}$$
 
 Notes regarding implementation:
 
 \begin{itemize}
-\item Numerical aproximations turn the $R = \frac{\Delta t  V_{jk}}{\Delta s}$ in higher than accepted deppending on the way the sums and products are done
+\item Numerical aproximations turn the $R = \frac{\Delta t  V_{max}}{\Delta s}$ in higher than accepted deppending on the way the sums and products are done
 \item The Laplacian should not be contaminated, should just multiply by R.
-\item The last two lines in the equation inclunding equation (\ref{1}) are acceptable implementations.
+\item The last two lines in the equation inclunding equation (\ref{3}) are acceptable implementations.
 \end{itemize}
+
+References
+
+[1] Alford R.M., Kelly K.R., Boore D.M. (1974) Accuracy of finite-difference modeling of the acoustic wave equation Geophysics, 39 (6), P. 834-842
+
+[2] Chen, Jing-Bo (2011) A stability formula for Lax-Wendroff methods with fourth-order in time and general-order in space for the scalar wave equation Geophysics, v. 76, p. T37-T42
  
 
 \end{document}

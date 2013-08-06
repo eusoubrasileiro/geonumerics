@@ -84,26 +84,15 @@ class BaseWave2DField(object):
         else:
             self.Vel[:][:] = velocity
 
-        # get global max and min        
-        self.vmin = self.Vel[0][0]
-        self.vmax = self.Vel[0][0]
-        for array in self.Vel:
-            vmin = array.min()
-            vmax = array.max()
-            if(vmin < self.vmin):
-                self.vmin = vmin  
-            if(vmax > self.vmax):
-                self.vmax = vmax
+        # get global max and min (simple so simple)
+        self.vmin = self.Vel.min()
+        self.vmax = self.Vel.max()
 
         if not isinstance(wavelet, RickerSource):
             raise Exception(wavelet, "not a supported wavelet class")          
             # using the principle of planar waves 
             # to set the source wavelet frequency               
-            # minvelocity = self.Vel[0][0]
-            # for array in self.Vel:
-            #     vmin = array.min()
-            #     if(minvelocity > vmin):
-            #         minvelocity = vmin                
+            # minvelocity = self.Vel.min()
             # #default wavelet triangular
             # self.Fw = minvelocity/(2*self.Ds);    
             # self.Wavelet=10*Triangle(self.Fw,self.Dt)          
@@ -170,8 +159,8 @@ class BaseWave2DField(object):
         initial = time.clock()                
         movie = np.zeros([int(self.MaxIter/self.Nrec), self.Nz, self.Nx])
         # for little problems with the wavelet put initialize as 1?
-        
-        for i in range(1, self.MaxIter, 1):
+        #xrange faster then range
+        for i in xrange(1, self.MaxIter, 1):
             self.SolveNextTime()
             if(i%self.Nrec==0): # every n'th Nrec
                 movie[snapiter][:][:] = self.Ucurrent[:][:]
@@ -268,17 +257,13 @@ class BaseWave1DField(object):
                 self.Vel = velocity
         # if not put a constant velocity
         else:
-            self.Vel[:][:] = velocity
+            self.Vel[:] = velocity
 
 
         if(wavelet == None):         
             # using the principle of planar waves 
             # to set the source wavelet frequency               
-            minvelocity = self.Vel[0][0]
-            for array in self.Vel:
-                vmin = array.min()
-                if(minvelocity > vmin):
-                    minvelocity = vmin                
+            minvelocity = self.Vel.min()
             #default wavelet triangular
             self.Fw = minvelocity/(2*self.Ds);    
             self.Wavelet=10*Triangle(self.Fw, self.Dt)           
@@ -319,6 +304,9 @@ class BaseWave1DField(object):
         """
         pass
 
+    def Clean(self):
+        pass
+
 
     def Simulate(self):
         r"""
@@ -342,24 +330,26 @@ class BaseWave1DField(object):
             sys.stdout.flush()        
         sys.stdout.write(" done! \n")
         final = time.clock()
-        sys.stdout.write("solving time (s) %.1f" %(final-initial))
-                
+        sys.stdout.write("solving time (s) %.1f" %(final-initial))        
+
+        self.Clean()
+        
         return movie        
        
        
     def EstimateTime(self):
         r"""
-        Estimate time based on 50 interactions
+        Estimate time based on 10 interactions
         """       
         # a shallow copy will work
         clone = copy.copy(self) 
         initial = time.clock()    
         count=0        
-        while (count < 50):
+        while (count < 10):
             clone.SolveNextTime()
             count +=1
         final = time.clock()
-        timeperstep = (final-initial)/50.0        
+        timeperstep = (final-initial)/10.0        
         print "Time per step (s)", timeperstep
         print "Estimated time (s)", self.MaxIter*timeperstep        
         # let it free for the gc collector

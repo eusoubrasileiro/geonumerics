@@ -21,12 +21,11 @@ U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2  \sum_{a=-N
 For forth order space, we have $N=2$ and $w$ is:
 $$ w = \frac{1}{12} [-1, 16, -30, 16, -1] $$
 
-Can also be simplified to 1st order (N=1):
+Can also be simplified to 2nd order (N=1):
 
 \begin{equation}
 U_{jk}^{n+1}  =  \left( \frac{\Delta t  V_{jk}}{\Delta s} \right) ^2 \left(  U_{j+1k}^n - 4 U_{jk}^n + U_{jk+1}^n + U_{j-1k}^n + U_{jk-1}^n  \right) + 2 U_{jk}^{n} - U_{jk}^{n-1} \nonumber
 \end{equation}
-
 
 Using the discrete solution for 2D wave equation, where $ i = \sqrt{-1} $, $ n = n \Delta t $, $ j = j \Delta x $ and $ k = k \Delta z $. Last using $ \Delta x = \Delta z = \Delta s $, follows that the discrete solution can be written as:
 
@@ -119,17 +118,53 @@ I can't find if $ | \mu | \geq 1 $ or what limitations I have in $r$ for this re
 
 \newpage
 
+Jing-Bo Chen, pg T38 equation (3) \\
+Solution!
+\bigskip
+
+Convergence given by:
+
+$$ r = \frac{V \Delta t}{\Delta s} $$ 
+
+Where $ V $ is the maximum of $ V_{jk} $ 
+
+$$ r \leq \frac{2}{\sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}} $$
+
+Reminded that $w_a$ is the centered finite differences weights and the indexes 1 e 2 refer to the x and y dimensions.
+
+Can writen as limitation to $ \Delta t $ :
+
+$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}} $$
+
+Examples, 
+Second order schema :
+
+$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2(1+2+1)}} \implies \Delta t \leq \frac{ \Delta s}{ V \sqrt{2}} $$
+
+Forth order schema :
+
+$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2/12(1+16+30+16+1)}} \implies \Delta t \leq \frac{ \Delta s \sqrt{3}}{ V \sqrt{8}} $$
+
+\newpage
+
+References previous page
+
+[1] Alford R.M., Kelly K.R., Boore D.M. (1974) Accuracy of finite-difference modeling of the acoustic wave equation Geophysics, 39 (6), P. 834-842
+
+[2] Chen, Jing-Bo (2011) A stability formula for Lax-Wendroff methods with fourth-order in time and general-order in space for the scalar wave equation Geophysics, v. 76, p. T37-T42
+
+\newpage
+
 \textit{My own solution.}
 
 Not certain if its a \textit{proof by contradiction} but seans to be hehehe. 
 
-\textbf{Supose $ \Delta > 0 $ condition holds} for $ | \epsilon |  \leq 1 $ that using $ \epsilon^{-1} = \mu $ means $ |\mu| \geq 1 $. Thus this requires (look at \ref{6}) for $ r^2 \beta - 1 > 0 $   to be $ r > \frac{1}{ \sqrt{ \beta} } $  that can be satisfied by using $ r = \frac{1}{ \sqrt{ \beta} } + \psi $ with $ \psi > 0 $ positive, real. 
+\textbf{Suppose $ \Delta > 0 $ condition holds} for $ | \epsilon |  \leq 1 $ that using $ \epsilon^{-1} = \mu $ means $ |\mu| \geq 1 $. Thus this requires (look at \ref{6}) for $ r^2 \beta - 1 > 0 $   to be $ r > \frac{1}{ \sqrt{ \beta} } $  that can be satisfied by using $ r = \frac{1}{ \sqrt{ \beta} } + \psi $ with $ \psi > 0 $ positive, real. 
 
 Going back to \ref{6} for the first root $ \mu{'} $, we have:
 
 \begin{eqnarray}
 \mu^{'} &=& -2r^2\beta+1 + 2\sqrt{r^2\beta(r^2\beta-1)} \nonumber \\
-	&=& -2r^2\beta+1 + 2\sqrt{r^2\beta(r^2\beta-1)} \nonumber \\
 	&=& -2 \left(1+\frac{2\psi\beta}{\sqrt{\beta}} + \psi^2\beta\right)+1+ 2\sqrt{\left(1+\frac{2\psi\beta}{\sqrt{\beta}} + \psi^2\beta\right)\left[\left(1+\frac{2\psi\beta}{\sqrt{\beta}} + \psi^2\beta\right)-1 \right]} \nonumber \\
 	&=& -2 	\left(1+2\psi\sqrt{\beta}+\psi^2\beta\right) +1 + 2 \sqrt{\left(1+2\psi\sqrt{\beta}+\psi^2\beta\right)\left[\left(1+2\psi\sqrt{\beta}+\psi^2\beta\right)-1\right]} \nonumber \\
 	&=& -2 A + 1 + 2\sqrt{A^2-A} \label{7}
@@ -156,58 +191,61 @@ At \ref{9} for $ A > 1 $ left hand side cannot hold, always $ > -2 $.
 At \ref{10} for $ A > 1 $ also cannot hold, $ -1 > left hand side > -2 $
 We don't even need to look at the second root. 
 
-
 This implies that $ \Delta > 0 $ doesn't satisfy the stability criteria. 
 
-\newpage
+\textbf{Suppose $ \Delta = 0 $ condition holds} for $ | \epsilon |  \leq 1 $ that using $ \epsilon^{-1} = \mu $ means $ |\mu| \geq 1 $. Thus this requires that $ r = \frac{1}{ \sqrt{ \beta} } $ \\
 
+For booth roots $ \mu $, we have:
+
+\begin{eqnarray}
+\mu &=& -2r^2\beta+1 + 2\sqrt{r^2\beta(r^2\beta-1)} \nonumber \\
+	&=& -2+1 \\ 
+	&=& -1 \label{11}
+\end{eqnarray}
+
+That clearly holds. 
+
+\textbf{Suppose $ \Delta < 0 $ condition holds} for $ | \epsilon |  \leq 1 $  Thus this requires $ r^2 \beta - 1 < 0 $  that can be satisfied by using $ r = \frac{1}{ \sqrt{ \beta} } - \psi $ with $ \psi > 0 $ positive, real. 
+
+Again going back to \ref{6} for the first root $ \mu{'} $, we have:
+
+\begin{eqnarray}
+\mu^{'} &=& -2r^2\beta+1 + 2\sqrt{r^2\beta(r^2\beta-1)} \nonumber \\
+	&=& -2 	\left(1-2\psi\sqrt{\beta}+\psi^2\beta\right) +1 + 2 \sqrt{\left(1-2\psi\sqrt{\beta}+\psi^2\beta\right)\left[\left(1-2\psi\sqrt{\beta}+\psi^2\beta\right)-1\right]} \nonumber \\
+\text{Rearranging due} && \text{ imaginary part} \nonumber \\
+	&=& -2 	\left(1-2\psi\sqrt{\beta}+\psi^2\beta\right) +1 + 2 i\sqrt{\left[1-\left(1-2\psi\sqrt{\beta}+\psi^2\beta\right)\right]\left(1-2\psi\sqrt{\beta}+\psi^2\beta\right)} \nonumber \\
+	&=& -2 A + 1 + 2i\sqrt{A^2-A} \label{12}
+\end{eqnarray}
+
+With $i=\sqrt{-1}$ imaginary unit and:
+
+\begin{equation}
+A = \left(1-2\psi\sqrt{\beta}+\psi^2\beta\right) \label{13}
+\end{equation}
+
+Note that since $ \psi > 1 $ then $ A < 1 $ always. Then using the requeriment for stability and complex number modulus (the other root is just conjugate of this so same modulus):
+\begin{eqnarray}
+| \mu | &\geq& 1 \nonumber \\
+	\left|-2 A + 1 + 2i\sqrt{A^2-A}\right| &\geq& 1  \nonumber \\
+	\sqrt{(-2 A + 1)^2 + 4(A^2-A) } &\geq& 1  \nonumber \\
+	\sqrt{ 1 } &\geq& 1  \nonumber 
+\end{eqnarray}
+
+So this condition also holds.
+Thus the solution is $ r \leq \frac{1}{ \sqrt{ \beta} } $ that is maximum given $\beta = 2 $ and then $ r \leq \frac{1}{ \sqrt{ 2 } } $ That agrees with Jing-Bo Chen and others for 2nd order.
+
+Still could not generalize formulation to general order in space from (\ref{1})
+\\
+\\
 Be reminded of inequalites with absolute values:
 
 $$ |x-3| \leq 9 \implies -9 \leq x - 3 \leq 9 \implies  -6 \leq x \leq 12 $$
 
 \newpage
 
-Jing-Bo Chen, \\
-\bigskip
-
-Convergence given by:
-
-$$ r = \frac{V \Delta t}{\Delta s} $$ 
-
-Where $ V $ is the maximum of $ V_{jk} $ 
-
-$$ r \leq \frac{2}{\sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}} $$
-
-Reminded that $w_a$ is the centered finite diferences weights and the indexes 1 e 2 refer to the x and y dimensions.
-
-Can writen as limitation to $ \Delta t $ :
-
-$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{\sum_{a=-N}^{N} (|w_a^1| + |w_a^2|)}} $$
-
-Examples, 
-Second order schema :
-
-$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2(1+2+1)}} \implies \Delta t \leq \frac{ \Delta s}{ V \sqrt{2}} $$
-
-Forth order schema :
-
-$$ \Delta t \leq \frac{2 \Delta s}{ V \sqrt{2/12(1+16+30+16+1)}} \implies \Delta t \leq \frac{ \Delta s \sqrt{8}}{ V 3} = \frac{ \Delta s \sqrt{8}}{ V 3}$$
-
-\newpage
-
-References previous page
-
-[1] Alford R.M., Kelly K.R., Boore D.M. (1974) Accuracy of finite-difference modeling of the acoustic wave equation Geophysics, 39 (6), P. 834-842
-
-[2] Chen, Jing-Bo (2011) A stability formula for Lax-Wendroff methods with fourth-order in time and general-order in space for the scalar wave equation Geophysics, v. 76, p. T37-T42
-
-\newpage
-
 Altough the schema above is stable under the given condition, quotting from scicomp:
 
 The first order upwind method is monotone; it does not introduce spurious oscillations. But it is only first order accurate, resulting in so much numerical diffusion as to be unusable for many purposes. Godunov's Theorem states that linear spatial discretizations of higher than first order cannot be monotone.
-
-So Lets try the first order, altough it might be dispersive as well in regions of high $ \nabla = ( \frac{\partial}{\partial x}, \frac{\partial}{\partial y} ) $ Should take a look on S*U implementation! Book bought! Loook at implementation!
 
 
 \newpage
