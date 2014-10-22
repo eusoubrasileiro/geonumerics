@@ -5,4 +5,5 @@ Numerical tools for geophysical and geological purposes in python and C. (pré-f
 
 http://geophypython.blogspot.com.br/
 
-Nowadays added /pyutils/ and /ipython_notebooks/ this repo is a *sandbox*.
+Nowadays /pyutils/, /ipython_notebooks/ shows this repo is a *sandbox*.
+Also fatiando *sandbox*.

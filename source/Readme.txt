@@ -7,3 +7,4 @@ Lessons learned:
 
 + use ipython notebook restart to make sure your module has been reloaded
 + or restart ipython
++ forget about everything back and use ipython notebook
