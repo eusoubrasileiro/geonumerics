@@ -53,7 +53,3 @@ for asegy in files:
     i += 1
     SEGYcoordinatesfix(asegy)
 
-
-
-    
-
