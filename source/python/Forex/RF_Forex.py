@@ -2,29 +2,55 @@ from zigzag import peak_valley_pivots, max_drawdown, compute_segment_returns, pi
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import datetime
 from sklearn import preprocessing
-from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
-import operator
-import re
-from dateutil import parser
-import time
-import sys
 from IPython.html.widgets import FloatProgress
 from IPython.display import display
-from time import sleep
+
 
 def plot_quotes(quotes, dataframe): 
     """
     Plot all columns in the daframe, shared axis x
     """   
-    f, axr = pyplot.subplots(len(quotes), sharex=True, figsize=(15,10))
+    f, axr = plt.subplots(len(quotes), sharex=True, figsize=(15,10))
     for i, ax in enumerate(axr):
         dataframe.iloc[:,i].plot(ax=axr[i])
         axr[i].set_ylabel(quotes[i])
 
+def create_binary_zig_zag_class_sm(X, target_quote, span=10, smooth=3, plot=True):
+    sd = X[target_quote]
+    # using ewm or simple moving average
+    #sdsm = sd.ewm(10).mean() # exponential moving average
+    sdsm = sd.rolling(span).mean() # simple moving average
+    sdsm.fillna(method='bfill', inplace=True)
+    sddiff = sd-sdsm # signal change points crossings
+    def updown(x):
+        if x > 0:
+            return 1
+        elif x < 0:
+            return 0
+        else:
+            return np.nan
+    supdown = pd.Series(np.append(np.array(list(map(updown, (np.diff(np.sign(sddiff)))))), np.nan), 
+                        index=sd.index)
+    spivots = supdown.dropna()
+    supdown.fillna(method='ffill', inplace=True) # fill nans with last valid value
+    # remove spikes of one/n sample works only for odd sample windows, mediam works only for odd samples window
+    supddown_smooth = supdown.rolling(smooth, center=True).median()
 
+    if plot:
+        fig, arx = plt.subplots(2, sharex=True, figsize=(18,6))
+        sd[supdown.index].plot(ax=arx[0], style='--b', lw=0.5) # plot just the intersection points
+        fig.subplots_adjust(hspace=0)
+        sdsm.plot(ax=arx[0], style='g', lw=0.5)
+        sd.plot(ax=arx[0], style='-', lw=1.0)
+#        supdown.plot(ax=arx[1], style='-b', lw=0.5)          
+        supddown_smooth.plot(ax=arx[1], style='-g', lw=1) 
+#    supddown_smooth.index.size == supdown.index.size
+
+    X['du'] = supddown_smooth
+
+    return spivots
 
 def create_binary_zig_zag_class(X, target_quote, pts_variation, plot=True, lasttrend=False):
     
@@ -34,8 +60,10 @@ def create_binary_zig_zag_class(X, target_quote, pts_variation, plot=True, lastt
 
     # remove the last segment of zigzag from training, can not be used it
     # is a misleading trend?? is it?
-    if lasttrend == True:
+    if not lasttrend:
         spivots.drop(spivots.tail(1).index, inplace=True) # remove the last point it is not real??
+
+    X['du'] = spivots
     
     if plot:
         f, axr = plt.subplots(2, sharex=True, figsize=(15,4))
@@ -43,21 +71,8 @@ def create_binary_zig_zag_class(X, target_quote, pts_variation, plot=True, lastt
         X[target_quote].plot(ax=axr[0])
         X.loc[spivots.index, target_quote].plot(ax=axr[0], style='.r-')
 
-    # calculate average interval between up's and downś 
-    deltas = pd.Series([spivots.index[i+1]-spivots.index[i] for i in range(spivots.index.size-1)])
-    
-    mean = np.sum(deltas)/spivots.index.size
-    deltamin = np.min(deltas)
-    deltamax = np.max(deltas)
-        
-    #X['du'] = pd.Series(np.zeros(X.index.size)*np.nan, index=X.index)
-    # make class of up (1) or down (0) trends from the zigzap indicator
-    for i in range(spivots.index.size-1):
-        X.loc[ ((X.index >= spivots.index[i]) & 
-              (X.index < spivots.index[i+1])), 'du' ] = spivots[i]
 
-    # du is column 2
-    #X.iat[-1, 2] = X.iat[-2, 2] # replicate in the end ups or downs
+    X['du'].fillna(method='ffill', inplace=True) # fill nans with last valid value
 
     # turn in [0-1]
     # 1 is up trend, 0 is down trend
@@ -70,9 +85,7 @@ def create_binary_zig_zag_class(X, target_quote, pts_variation, plot=True, lastt
         plt.ylim(-0.15, 1.15)
         plt.ylabel('up=1 down=0')
     
-    # variations in time between ups and downs of zig/zag
-    print("delta mean: ", mean, " max: ", deltamax, " min: ", deltamin)
-    return (mean, deltamax, deltamin), spivots
+    return spivots
 
 
 def make_shift_binary_class(X, shift, plot=True):
@@ -133,18 +146,28 @@ def RSI(y, windown=14):
 #     return 100. - (100./(1.+rs))
 
 def create_indicators(df, target_variable):
-    # wont be needed
+    # wont be needed, and will create problemns?
     df.drop(target_variable, axis='columns', inplace=True)
     quotes = df.columns
     for quote in quotes:
+        df['ema_2 '+quote] = pd.Series.ewm(df[quote], span=2, adjust=True, min_periods=0).mean()
+        df['ema_3 '+quote] = pd.Series.ewm(df[quote], span=3, adjust=True, min_periods=0).mean()        
         df['ema_5 '+quote] = pd.Series.ewm(df[quote], span=5, adjust=True, min_periods=0).mean()
         df['ema_10 '+quote] = pd.Series.ewm(df[quote], span=10, adjust=True, min_periods=0).mean()
         df['ema_15 '+quote] = pd.Series.ewm(df[quote], span=15, adjust=True, min_periods=0).mean()
+        df['dema_2 '+quote] = df[quote] - df['ema_2 '+quote]
+        df['dema_3 '+quote] = df[quote] - df['ema_3 '+quote]
         df['dema_5 '+quote] = df[quote] - df['ema_5 '+quote]
         df['dema_10 '+quote] = df[quote] - df['ema_10 '+quote]
         df['dema_15 '+quote] = df[quote] - df['ema_15 '+quote]
         df['macd '+quote] = MACD(df[quote])
+        df['macd_tiny '+quote] = MACD(df[quote], 7, 3)
+        df['macd_mean '+quote] = MACD(df[quote], 13, 6)
+        df['macd_double '+quote] = MACD(df[quote], 52, 24)
+        df['rsi_2 '+quote] = RSI(df[quote], 2)
+        df['rsi_3 '+quote] = RSI(df[quote], 3)
         df['rsi_5 '+quote] = RSI(df[quote], 5)
+        df['rsi_10 '+quote] = RSI(df[quote], 30)
         df['rsi_20 '+quote] = RSI(df[quote], 20)
         df['rsi_30 '+quote] = RSI(df[quote], 30)
     for i in range(len(quotes)-1):
@@ -168,24 +191,6 @@ def calculate_corr_and_remove(df, serie_binary_class, verbose=True):
     df.drop('target_variable_dup', axis='columns', inplace=True)
     df.drop(corr.index[corr < 0.05], axis='columns', inplace=True)
 
-def performRFClass(X_train, y_train, X_test, y_test, algorithm):
-    """
-    Random Forest Binary Classification
-    """
-
-    if algorithm == 'RF':
-        clf = RandomForestClassifier(n_estimators=700, n_jobs=-1)
-    else:
-        clf = ExtraTreesClassifier(n_estimators=700, n_jobs=-1)
-
-    #print(len(X_train))
-    clf.fit(X_train, y_train)
-    
-    accuracy = clf.score(X_test, y_test)
-    
-    return accuracy
-
-
 def prepareDataForClassification(dataset):
     """
     generates categorical to be predicted column, 
@@ -202,85 +207,6 @@ def prepareDataForClassification(dataset):
     y = dataset.UpDown    
     
     return X, y
-
-
-def performTimeSeriesCV(X_train, y_train, number_folds):
-    """
-    Given X_train and y_train (the test set is excluded from the Cross Validation),
-    number of folds, the ML algorithm to implement and the parameters to test,
-    the function acts based on the following logic: it splits X_train and y_train in a
-    number of folds equal to number_folds. Then train on one fold and tests accuracy
-    on the consecutive as follows:
-    - Train on fold 1, test on 2
-    - Train on fold 1-2, test on 3
-    - Train on fold 1-2-3, test on 4
-    ....
-    Returns mean of test accuracies.
-    """
- 
-    print('Size train set: ', X_train.shape)
-    
-    # k is the size of each fold. It is computed dividing the number of 
-    # rows in X_train by number_folds. This number is floored and coerced to int
-    k = int(np.floor(float(X_train.shape[0]) / number_folds))
-    print('Size of each fold: ', k)
-    
-    # initialize to zero the accuracies array. It is important to stress that
-    # in the CV of Time Series if I have n folds I test n-1 folds as the first
-    # one is always needed to train
-    accuracies = np.zeros(number_folds-1)
- 
-    # loop from the first 2 folds to the total number of folds    
-    for i in range(2, number_folds + 1):
-        print('')
-        
-        # the split is the percentage at which to split the folds into train
-        # and test. For example when i = 2 we are taking the first 2 folds out 
-        # of the total available. In this specific case we have to split the
-        # two of them in half (train on the first, test on the second), 
-        # so split = 1/2 = 0.5 = 50%. When i = 3 we are taking the first 3 folds 
-        # out of the total available, meaning that we have to split the three of them
-        # in two at split = 2/3 = 0.66 = 66% (train on the first 2 and test on the
-        # following)
-        split = float(i-1)/i
-        
-        # example with i = 4 (first 4 folds):
-        #      Splitting the first       4        chunks at          3      /        4
-        print('Splitting the first ' + str(i) + ' chunks at ' + str(i-1) + '/' + str(i))
-        
-        # as we loop over the folds X and y are updated and increase in size.
-        # This is the data that is going to be split and it increases in size 
-        # in the loop as we account for more folds. If k = 300, with i starting from 2
-        # the result is the following in the loop
-        # i = 2
-        # X = X_train[:(600)]
-        # y = y_train[:(600)]
-        #
-        # i = 3
-        # X = X_train[:(900)]
-        # y = y_train[:(900)]
-        # .... 
-        X = X_train[:(k*i)]
-        y = y_train[:(k*i)]
-        print('Size of train + test: ', X.shape) # the size of the dataframe is going to be k*i
- 
-        # X and y contain both the folds to train and the fold to test.
-        # index is the integer telling us where to split, according to the
-        # split percentage we have set above
-        index = int(np.floor(X.shape[0] * split))
-        
-        # folds used to train the model        
-        X_trainFolds = X[:index]        
-        y_trainFolds = y[:index]
-        
-        # fold used to test the model
-        X_testFold = X[(index + 1):(index + 4)]
-        y_testFold = y[(index + 1):(index + 4)]
-        print('size of samples to test ', len(y_testFold))
-        print('first index of tested sample ', index+1)        
-        
-        # i starts from 2 so the zeroth element in accuracies array is i-2. performClassification() is a function which takes care of a classification problem. This is only an example and you can replace this function with whatever ML approach you need.
-        accuracies[i-2] = performRFClass(X_trainFolds, y_trainFolds, X_testFold, y_testFold, ' ')
 
 
 def performCV_analysis(X_train, y_train, windown, nanalysis=-1, nvalidate=2, algorithm='ET'):    
@@ -310,8 +236,10 @@ def performCV_analysis(X_train, y_train, windown, nanalysis=-1, nvalidate=2, alg
         return
 
     if algorithm == 'RF': # classification model
+    # random forest binary classifier
         clf = RandomForestClassifier(n_estimators=700, n_jobs=-1)
     else:
+    # extra tree binary classifier
         clf = ExtraTreesClassifier(n_estimators=700, n_jobs=-1)
 
     step = int(round(pshifts/nanalysis)) # window shift step in samples
@@ -341,38 +269,119 @@ def performCV_analysis(X_train, y_train, windown, nanalysis=-1, nvalidate=2, alg
     return (iaccuracies, accuracies), clf
 
 
-def performCV_shift(X_train, y_train, windown, algorithm, ntest):    
+def performQuickTrainigAnalysis(X_train, y_train, nvalidate, clfmodel=None, windown=60, nanalysis=-1):    
+    """
+    Cross-Validate the model    
+
+    train the model using a sliding window of size windown
+
+    the training is not progressive cumulative, a new tree every time
+
+    and will produce nanalysis (array) of size number of window movements
+    """
+
+    # nvalidate  number of samples to use for validation
+    pshifts = round(X_train.index.size-windown+1-nvalidate) # possible shifts N-windown+1    
+
     print('Size train set: ', X_train.shape)
     print('samples in each window: ', windown)
-    ntest = ntest  # number of samples to estimate
-    nshifts = len(y_train)-windown+1-ntest # possible shifts N-windown+1    
-    print('number of shifts', nshifts)
 
-    accuracies = np.zeros(nshifts)  
-    
-    f = FloatProgress(min=0, max=nshifts)
+    if nanalysis < 0:
+        # number of samples default, equal number of 
+        # windows inside data
+        nanalysis = round((X_train.index.size-nvalidate)/windown)
+    elif nanalysis >= pshifts:
+        print("Error")
+        return
+
+    print('number of analysis: ', nanalysis)
+
+    if clfmodel is None : # in the absence create one
+        clfmodel = ExtraTreesClassifier(n_estimators=700, n_jobs=-1)
+
+    step = int(round(pshifts/nanalysis)) # window shift step in samples
+    #diff = pshifts-
+    shifts = range(0, pshifts, step)
+    accuracies = np.zeros(len(shifts)) # store the result of cross-validation
+    iaccuracies = np.zeros(len(shifts)) # index of the last sample in the window
+
+    f = FloatProgress(min=0, max=nanalysis)
     display(f)
 
-    if algorithm == 'RF':
-        clf = RandomForestClassifier(n_estimators=700, n_jobs=-1)
-    else:
-        clf = ExtraTreesClassifier(n_estimators=700, n_jobs=-1)
+    # sliding window with step sample of shift     
+    for j, i in enumerate(shifts): # shift, classify and cross-validate
+        f.value = j # counter of analysis
 
-    # sliding window with one sample of shift
-    for i in range(nshifts): # shift, classify and estimate/test
-        f.value = i
         # train using the window samples
         X_trainFolds = X_train[i:i+windown]
         y_trainFolds = y_train[i:i+windown]
         # test using the samples just after the window       
-        X_testFold = X_train[i+windown+1:i+windown+ntest]
-        y_testFold = y_train[i+windown+1:i+windown+ntest]    
+        X_testFold = X_train[i+windown+1:i+windown+nvalidate]
+        y_testFold = y_train[i+windown+1:i+windown+nvalidate]    
 
-        #print(len(X_trainFolds), len(y_trainFolds))        
-        #print(len(X_testFold), len(y_testFold))       
-        #print(len(X_train))
-        clf.fit(X_trainFolds, y_trainFolds)        
-        accuracies[i] = clf.score(X_testFold, y_testFold)
-        #accuracies[i] = performRFClass(X_trainFolds, y_trainFolds, X_testFold, y_testFold, algorithm)
+        clfmodel.fit(X_trainFolds, y_trainFolds)        
+        accuracies[j] = clfmodel.score(X_testFold, y_testFold)
+        iaccuracies[j] = i+windown
 
-    return accuracies, clf
+    print("percent of data used ", 100*float(iaccuracies[-1]/X_train.index.size))
+
+    return (iaccuracies, accuracies), clfmodel
+
+
+def performRandomQuickTrainigAnalysis(X_train, y_train, nvalidate, windown=60, nanalysis=-1):    
+    """
+    Cross-Validate the model    
+
+    train the model using a sliding window of size windown
+
+    the training is not progressive cumulative, a new tree every time
+
+    and will produce nanalysis (array) of size number of window movements
+    """
+
+    # nvalidate  number of samples to use for validation
+    pshifts = round(X_train.index.size-windown+1-nvalidate) # possible shifts N-windown+1    
+
+    print('Size train set: ', X_train.shape)
+    print('samples in each window: ', windown)
+
+    if nanalysis < 0:
+        # number of samples default, equal number of 
+        # windows inside data
+        nanalysis = round((X_train.index.size-nvalidate)/windown)
+    elif nanalysis >= pshifts:
+        print("Error")
+        return
+
+    print('number of analysis: ', nanalysis)
+
+    clfmodel = ExtraTreesClassifier(n_estimators=700, n_jobs=-1)
+
+    step = int(round(pshifts/nanalysis)) # window shift step in samples
+    #diff = pshifts-
+    shifts = range(0, pshifts, step)
+    accuracies = np.zeros(len(shifts)) # store the result of cross-validation
+    iaccuracies = np.zeros(len(shifts)) # index of the last sample in the window
+
+    f = FloatProgress(min=0, max=nanalysis)
+    display(f)
+
+    # sliding window with step sample of shift     
+    for j, i in enumerate(shifts): # shift, classify and cross-validate
+        f.value = j # counter of analysis
+        
+        # create a random begin for the window
+        i = np.random.randint(0, X_train.index.size-windown-nvalidate)
+
+        # train using the window samples
+        X_trainFolds = X_train[i:i+windown]
+        y_trainFolds = y_train[i:i+windown]
+        # test using the samples just after the window       
+        X_testFold = X_train[i+windown+1:i+windown+nvalidate]
+        y_testFold = y_train[i+windown+1:i+windown+nvalidate]    
+
+        clfmodel.fit(X_trainFolds, y_trainFolds)        
+        accuracies[j] = clfmodel.score(X_testFold, y_testFold)
+        iaccuracies[j] = i+windown
+
+    return (iaccuracies, accuracies), clfmodel
