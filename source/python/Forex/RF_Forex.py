@@ -178,6 +178,7 @@ def calculate_corr_and_remove(df, serie_binary_class, verbose=True):
     calculate correlation with binary classification serie
     collumns less then 5% are removed and wont be used on
     random forest
+    Remove after high correlate variables...Todo
     """
     df['target_variable_dup'] = pd.Series(serie_binary_class, index=df.index)
     # drop NANs cannot be used for correlation
