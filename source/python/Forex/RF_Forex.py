@@ -100,7 +100,7 @@ def make_shift_binary_class(X, shift, plot=True):
 
     if plot:
         f, axr = plt.subplots(1, sharex=True, figsize=(15,1))
-        X['du'][last_sample:].plot(style='.-b', ax=axr)
+        X.loc[last_sample:, 'du'].plot(style='.-b', ax=axr)
         axr.set_ylim(-0.15, 1.15)
     
     X['du_shifted'] = X['du'].shift(-shift) #shift = 1 # shift -1 sample to the left
@@ -109,9 +109,8 @@ def make_shift_binary_class(X, shift, plot=True):
     # be used since they come from FUTURE VALUES we dont know yet.
     X.loc[ X.tail(shift).index, 'du_shifted'] = np.nan
 
-
     if plot:
-        X['du_shifted'][last_sample:].plot(style='.-r', ax=axr)
+        X.loc[last_sample:, 'du_shifted'].plot(style='.-r', ax=axr)
         axr.set_ylim(-0.15, 1.15)
 
 
@@ -350,9 +349,9 @@ def performRandomQuickTrainigAnalysis(X_train, y_train, nvalidate, windown=60, n
         # number of samples default, equal number of 
         # windows inside data
         nanalysis = round((X_train.index.size-nvalidate)/windown)
-    elif nanalysis >= pshifts:
-        print("Error")
-        return
+    #elif nanalysis >= pshifts:
+    #    print("Error")
+    #     return
 
     print('number of analysis: ', nanalysis)
 
