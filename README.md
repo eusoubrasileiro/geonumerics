@@ -4,7 +4,7 @@ Geonumerics
 Numerical tools for geology and geophysics in python and C. 
 This repo is my *sandbox*.
 
-Most of the new code (work related created tools) are jupyter notebooks at `ipython_notebooks` folder. Some of those notebooks are prototypes to the **Fatiando a Terra** project where I focus on seismic modelling. Some are directly related to my work, for example, seismic and digital signal processing,  vibroseis field parameter test, vibroseis field data qc and tools for segy manipulation: coordinates fix, amplitude normalize and plotting. Finally a few notebooks are result of free time effort trying to implement reverse time depth migration. 
+Most of the new code (work related created tools) are jupyter notebooks at `ipython_notebooks` folder. Some of those notebooks are prototypes to the **Fatiando a Terra** project where I focus on seismic modelling. Some are directly related to my work, for example, seismic and digital signal processing,  vibroseis field parameter test, vibroseis field data qc and tools for segy manipulation: coordinates fix, amplitude normalize and plotting. Finally a few notebooks are result of my effort (when I get some free time) trying to implement reverse time depth migration. 
 
 Here are some of the more recent (2012+) prototypes based on [fatiando style](https://github.com/fatiando/prototypes):
 They use some of the branches of `fatiando_seismic` repository:
