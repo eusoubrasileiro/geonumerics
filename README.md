@@ -14,7 +14,8 @@ They use some of the branches of `fatiando_seismic` repository:
 * [Nmo correction](http://nbviewer.ipython.org/github/eusoubrasileiro/geonumerics/blob/master/ipython_notebooks/Geonumerics%20-%20Nmo%20and%20Rms%20velocity.ipynb) base on Oz Yilmaz in a simple sythentic data example.
 * [Pos-stack reverse time depth migration](http://nbviewer.ipython.org/github/eusoubrasileiro/geonumerics/blob/master/ipython_notebooks/Fatiando%20RTM%20zero-offset.ipynb) for zero-offset sections a simple example
 
-This repo also includes a little DSP library I developed in C.
+This repo also includes a tentative I did using random forest and pandas for Forex future values prediction and
+a little DSP library I developed in C.
 
 **Historical background:**
 This is a collection of some tools I developed along the years. I started with C and now I only use python. 
