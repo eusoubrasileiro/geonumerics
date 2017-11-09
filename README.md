@@ -18,7 +18,7 @@ This repo also includes a tentative I did using random forest and pandas for For
 a little DSP library I developed in C.
 
 **Historical background:**
-This is a collection of some tools I developed along the years. I started with C and now I only use python. 
+This is a collection of some tools I developed along the years. I started with `C` and now I only use `Python`. 
 Some tools are related to projects at college (long time ago), work or simple for learning. 
 This repo is a mix between my old google-code repo, work related code, fatiando under development tools (not in master branch) and cool stuff I am trying to learn.
 
