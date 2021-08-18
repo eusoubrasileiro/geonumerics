@@ -2,7 +2,7 @@ Geonumerics
 ===========
 
 Numerical tools for geology and geophysics in python and C. 
-This repo is my *sandbox*.
+This repo is my G&G *sandbox*.
 
 Most of the new code (work related created tools) are jupyter notebooks at `ipython_notebooks` folder. Some of those notebooks are prototypes to the **Fatiando a Terra** project where I focus on seismic modelling. Some are directly related to my work, for example, seismic and digital signal processing,  vibroseis field parameter test, vibroseis field data qc and tools for segy manipulation: coordinates fix, amplitude normalize and plotting. Finally a few notebooks are result of my effort (when I get some free time) trying to implement reverse time depth migration. 
 
@@ -18,7 +18,7 @@ This repo also includes a tentative I did using random forest and pandas for For
 a little DSP library I developed in C.
 
 **Historical background:**
-This is a collection of some tools I developed along the years. I started with `C` and now I only use `Python`. 
+This is a collection of some tools I developed along the years. I started with `C` and now it is mostly `Python`. 
 Some tools are related to projects at college (long time ago), work or simple for learning. 
 This repo is a mix between my old google-code repo, work related code, fatiando under development tools (not in master branch) and cool stuff I am trying to learn.
 
